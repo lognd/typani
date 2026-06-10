@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import random
 
-from typani import Err, ErrorSet, Ok, Result, merge
+from typani import Err, ErrorSet, Ok, Result
 
 
 # ---------------------------------------------------------------------------
@@ -35,8 +35,9 @@ class AuthError(ErrorSet):
     TokenExpired = "authentication token has expired"
 
 
-# Merge all three into one app-level set -- like Zig's || operator
-AppError = merge(NetworkError, ParseError, AuthError, name="AppError")
+# Combine into one app-level set with | -- like Zig's || operator.
+# A | B | C is cached and commutative: any ordering returns the same object.
+AppError = NetworkError | ParseError | AuthError
 
 
 # ---------------------------------------------------------------------------

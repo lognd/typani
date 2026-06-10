@@ -109,12 +109,12 @@ print(missing.unwrap_or("unknown"))  # "unknown"
 
 [Full docs](https://github.com/lognd/typani/blob/main/docs/error_set.md)
 
-Define errors with human-readable descriptions attached, merge them into a global
-set, and use them as `Result` error types -- all without accidentally comparing them
-to raw strings.
+Define errors with human-readable descriptions attached, combine them with `|`, and
+use them as `Result` error types -- all without accidentally comparing them to raw
+strings.  `A | B` and `B | A` return the exact same cached class object.
 
 ```python
-from typani import ErrorSet, merge, Ok, Err, Result
+from typani import ErrorSet, Ok, Err, Result
 
 class NetworkError(ErrorSet):
     Timeout   = "connection timed out after the deadline"
@@ -126,8 +126,7 @@ class ParseError(ErrorSet):
     MissingKey  = "required key not present in payload"
 
 # Merge into a single "global" error set -- like Zig's || operator
-AppError = merge(NetworkError, ParseError, name="AppError")
-# or: AppError = NetworkError | ParseError
+AppError = NetworkError | ParseError
 
 def fetch_config(url: str) -> Result[dict, AppError]:
     ...

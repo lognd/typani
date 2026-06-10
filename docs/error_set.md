@@ -45,23 +45,39 @@ if result.is_err:
 
 ## Global / merged error sets
 
-In Zig, error sets can be unioned together into a larger "global" set with the `||`
-operator. `ErrorSet` supports the same idea via the `|` operator and the `merge()`
-function:
+In Zig, error sets can be unioned together with the `||` operator.  `ErrorSet`
+supports the same idea via `|` directly on the classes:
+
+```python
+class ParseError(ErrorSet):
+    InvalidJson = "payload is not valid JSON"
+    MissingKey  = "required key not present"
+
+AllErrors = NetworkError | ParseError
+
+AllErrors.Timeout.description    # "Connection timed out after the deadline"
+AllErrors.InvalidJson.description  # "payload is not valid JSON"
+```
+
+The result is **cached and commutative** -- `NetworkError | ParseError` and
+`ParseError | NetworkError` return the exact same class object.  Chains flatten
+correctly too: `(A | B) | C` is identical to `A | B | C`.
+
+The auto-generated name sorts the inputs alphabetically:
+`NetworkError | ParseError` produces `NetworkError_ParseError`.
+
+`|` raises `ValueError` if any error name appears in both sets -- duplicate names
+are ambiguous, just as in Zig.
+
+### Custom name with `merge`
+
+Use `merge` when you want a specific name or are combining more than two sets:
 
 ```python
 from typani.error_set import merge
 
-AllErrors = merge(NetworkError, ParseError, name="AllErrors")
-# or equivalently:
-AllErrors = NetworkError | ParseError
-
-AllErrors.Timeout.description   # "Connection timed out after the deadline"
-AllErrors.InvalidJson.description  # "Input is not valid JSON"
+AppError = merge(NetworkError, ParseError, AuthError, name="AppError")
 ```
-
-`merge` raises `ValueError` if any error name appears in more than one of the source
-sets -- duplicate names are ambiguous and Zig imposes the same constraint.
 
 ## Why not `StrEnum`?
 
@@ -100,5 +116,5 @@ NetworkError.Timeout in list(NetworkError)  # membership test
 | `.description` | property | Returns the description assigned at definition time. |
 | `str(member)` | method | `"Name: description"` |
 | `repr(member)` | method | `"ClassName.Name"` |
-| `merge(*sets, name=...)` | function | Creates a new `ErrorSet` that is the union of all given sets. |
-| `SetA \| SetB` | operator | Shorthand for `merge(SetA, SetB)`. |
+| `SetA \| SetB` | operator | Cached, commutative merge. Auto-names result alphabetically. Chains flatten. |
+| `merge(*sets, name=...)` | function | Merge with a custom name; useful for 3+ sets or explicit naming. |

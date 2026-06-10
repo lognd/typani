@@ -1,21 +1,51 @@
 from __future__ import annotations
 
+import weakref
 from enum import Enum, EnumMeta
 from typing import Any
+
+# Cache merged sets so A | B and B | A return the identical class object.
+# Keyed by frozenset of leaf ErrorSet classes (not intermediate merges).
+_merge_cache: dict[frozenset[type], type[ErrorSet]] = {}
+
+# Tracks which leaf sets compose a merged ErrorSet (for flattening on re-merge).
+_source_map: weakref.WeakKeyDictionary[type, frozenset[type]] = (
+    weakref.WeakKeyDictionary()
+)
+
+
+def _leaves(s: type[ErrorSet]) -> frozenset[type]:
+    """Return the leaf ErrorSet classes that make up *s*."""
+    return _source_map.get(s, frozenset({s}))
 
 
 class _ErrorSetMeta(EnumMeta):
     """Metaclass for ErrorSet.
 
     Adds the ``|`` operator at the class level so that two error-set classes
-    can be merged into a new one: ``NetworkError | ParseError``.
+    can be merged into a new one::
+
+        AllErrors = NetworkError | ParseError
+
+    The result is cached so ``NetworkError | ParseError`` and
+    ``ParseError | NetworkError`` return the exact same class object.
+    Chains flatten correctly: ``(A | B) | C`` is the same as ``A | B | C``.
     """
 
     def __or__(cls, other: Any) -> type[ErrorSet]:  # type: ignore[override]
-        """Return a new ErrorSet that is the union of *cls* and *other*."""
+        """Return a cached, canonical merge of *cls* and *other*."""
         if not (isinstance(other, type) and issubclass(other, ErrorSet)):
             return NotImplemented  # type: ignore[return-value]
-        return merge(cls, other)  # type: ignore[arg-type]
+        key: frozenset[type] = _leaves(cls) | _leaves(other)  # type: ignore[arg-type]
+        if key in _merge_cache:
+            return _merge_cache[key]
+        # Sort by class name for a stable, human-readable result name.
+        sorted_sets: list[type[ErrorSet]] = sorted(key, key=lambda s: s.__name__)  # type: ignore[type-var]
+        name = "_".join(s.__name__ for s in sorted_sets)
+        result = merge(*sorted_sets, name=name)
+        _source_map[result] = key
+        _merge_cache[key] = result
+        return result
 
 
 class ErrorSet(Enum, metaclass=_ErrorSetMeta):
@@ -69,20 +99,17 @@ class ErrorSet(Enum, metaclass=_ErrorSetMeta):
 def merge(*sets: type[ErrorSet], name: str = "MergedErrorSet") -> type[ErrorSet]:
     """Return a new :class:`ErrorSet` that is the union of all given sets.
 
-    Raises ``ValueError`` if any error name appears in more than one of the
-    given sets -- Zig's error sets have the same constraint.
-
-    Example::
-
-        from typani.error_set import merge
-
-        AllErrors = merge(NetworkError, ParseError, name="AllErrors")
-        AllErrors.Timeout.description  # works
-        AllErrors.InvalidJson.description  # also works
-
-    You can also use the ``|`` operator directly on the classes::
+    Prefer the ``|`` operator for two-set merges -- it is cached and
+    commutative (``A | B`` is the same object as ``B | A``)::
 
         AllErrors = NetworkError | ParseError
+
+    Use ``merge`` directly when you need a custom name or are merging more
+    than two sets at once::
+
+        AllErrors = merge(NetworkError, ParseError, AuthError, name="AllErrors")
+
+    Raises ``ValueError`` if any error name appears in more than one input set.
     """
     members: dict[str, str] = {}
     for s in sets:
