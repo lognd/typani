@@ -16,6 +16,7 @@ authors = [
 dependencies = []
 
 [project.optional-dependencies]
+pydantic = ["pydantic>=2.0"]
 dev = [
     "ruff>=0.4",
     "black>=24",
@@ -27,7 +28,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/lognd/typani"
-Documentation = "https://github.com/lognd/typani/docs"
+Documentation = "https://github.com/lognd/typani#readme"
 Source = "https://github.com/lognd/typani/src/typani"
 Issues = "https://github.com/lognd/typani/issues"
 
