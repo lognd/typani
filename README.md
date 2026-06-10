@@ -1,12 +1,13 @@
 # typani
 
-A small collection of utility types for Python 3.10+, extracted from real projects. Inspired by Rust and Zig.
+A small collection of utility types for Python 3.10+, extracted from real projects.
+Inspired by Rust's `Result`/`Option`, Zig's error sets, and functional pipelines.
 
 ```
 pip install typani
 ```
 
-Pydantic integration (`SingletonModel`) requires pydantic>=2.0 as an optional dependency:
+Pydantic integration (`SingletonModel`) is optional:
 
 ```
 pip install typani[pydantic]
@@ -14,169 +15,205 @@ pip install typani[pydantic]
 
 ---
 
-## Types
+## `Result[T, E]` -- explicit success or failure
 
-### `Result[T, E]`
+[Full docs](docs/result.md)
 
-An explicit success-or-failure container. Replaces bare exceptions for expected failure paths.
+Tired of `try/except` chains that silently swallow errors, or functions that return
+`None` and leave the caller guessing why?  `Result` makes the failure path a
+first-class value.
 
 ```python
 from typani import Ok, Err, Result
 
-def parse(s: str) -> Result[int, str]:
+def parse_port(s: str) -> Result[int, str]:
     try:
-        return Ok(int(s))
+        port = int(s)
     except ValueError:
-        return Err(f"not a number: {s!r}")
-
-result = parse("42")
-if result.is_ok:
-    print(result.ok)  # 42
-
-# Operator shortcuts
-doubled = parse("5") | (lambda x: x * 2)      # map
-chained = parse("5") >> (lambda x: parse("3")) # and_then
+        return Err(f"{s!r} is not a number")
+    if not (1 <= port <= 65535):
+        return Err(f"{port} is out of range 1-65535")
+    return Ok(port)
 ```
 
-| Method | Description |
-|---|---|
-| `is_ok` / `is_err` | Check which variant |
-| `ok` / `err` | Unwrap to `T` or `None` |
-| `danger_ok` / `danger_err` | Assert-unwrap (crashes on wrong variant) |
-| `map(f)` / `\|` | Transform the success value |
-| `map_err(f)` | Transform the error value |
-| `and_then(f)` / `>>` | Chain a fallible computation |
-| `or_else(f)` | Recover from an error |
-| `inspect(f)` | Side-effect on success, return self |
-| `swap_ok(t)` / `swap_err(t)` | Re-type the absent side |
+The real power is chaining -- build a pipeline without nesting:
+
+```python
+from typani import Ok, Err, Result
+
+def read_env(key: str) -> Result[str, str]:
+    import os
+    val = os.getenv(key)
+    return Ok(val) if val is not None else Err(f"missing env var {key!r}")
+
+def parse_int(s: str) -> Result[int, str]:
+    return Ok(int(s)) if s.isdigit() else Err(f"not an integer: {s!r}")
+
+port: Result[int, str] = (
+    read_env("PORT")         # Result[str, str]
+    >> parse_int             # Result[int, str]  -- and_then
+    | (lambda p: p * 2)     # Result[int, str]  -- map (hypothetical transform)
+)
+
+match port:
+    case _ if port.is_ok:
+        print(f"port is {port.ok}")
+    case _:
+        print(f"error: {port.err}")
+```
+
+`|` is `map` (transform the success value), `>>` is `and_then` (chain a fallible
+step).  Errors short-circuit the chain automatically -- no `if result.is_err: return
+result` noise at every step.
 
 ---
 
-### `Option[T]`
+## `Option[T]` -- explicit presence or absence
 
-An explicit present-or-absent container. A composable alternative to `T | None`.
+[Full docs](docs/option.md)
+
+`T | None` is untracked by the type checker in many real codebases.  `Option[T]` is
+a real container: the type checker forces you to handle the absent case.
 
 ```python
 from typani import Some, Nothing, Option
 
-def find(items: list[str], key: str) -> Option[str]:
-    return Some(key) if key in items else Nothing()
-
-opt = find(["a", "b"], "a")
-if opt.is_some:
-    print(opt.some)  # "a"
-
-upper = opt | str.upper          # map
-length = opt >> (lambda s: Some(len(s)))  # and_then
+def find_user(users: dict[int, str], uid: int) -> Option[str]:
+    return Some(users[uid]) if uid in users else Nothing()
 ```
 
-| Method | Description |
-|---|---|
-| `is_some` / `is_nothing` | Check which variant |
-| `some` | Unwrap to `T` or `None` |
-| `danger_some` | Assert-unwrap |
-| `map(f)` / `\|` | Transform the value if present |
-| `and_then(f)` / `>>` | Chain an optional computation |
-| `or_else(f)` | Supply a fallback |
-| `unwrap_or(default)` | Unwrap with a default |
-| `inspect(f)` | Side-effect if present, return self |
+Chain transformations without checking at every step:
+
+```python
+users = {1: "alice", 2: "bob"}
+
+display = (
+    find_user(users, 1)          # Some("alice")
+    | str.upper                  # Some("ALICE")
+    | (lambda s: f"User: {s}")   # Some("User: ALICE")
+)
+print(display.unwrap_or("unknown"))  # "User: ALICE"
+
+missing = (
+    find_user(users, 99)         # Nothing
+    | str.upper                  # Nothing (map skips Nothing)
+)
+print(missing.unwrap_or("unknown"))  # "unknown"
+```
+
+`Nothing` short-circuits the whole chain just like `Err` does in `Result`.
 
 ---
 
-### `ErrorSet`
+## `ErrorSet` -- Zig-inspired typed error enums
 
-An enum where each member's value is a human-readable description string. Inspired by Zig error sets.
+[Full docs](docs/error_set.md)
 
-Better than `StrEnum`: members are never accidentally equal to raw strings, and it works on Python 3.10+.
+Define errors with human-readable descriptions attached, merge them into a global
+set, and use them as `Result` error types -- all without accidentally comparing them
+to raw strings.
 
 ```python
-from typani import ErrorSet, merge
+from typani import ErrorSet, merge, Ok, Err, Result
 
 class NetworkError(ErrorSet):
-    Timeout    = "connection timed out"
-    Refused    = "connection refused"
+    Timeout   = "connection timed out after the deadline"
+    Refused   = "remote host refused the connection"
+    DnsFailure = "could not resolve hostname"
 
 class ParseError(ErrorSet):
-    InvalidJson = "invalid JSON payload"
-    MissingKey  = "required key not present"
+    InvalidJson = "payload is not valid JSON"
+    MissingKey  = "required key not present in payload"
 
-# Merge into a single set (like Zig's error set union)
+# Merge into a single "global" error set -- like Zig's || operator
 AppError = merge(NetworkError, ParseError, name="AppError")
+# or: AppError = NetworkError | ParseError
 
-def fetch(url: str) -> Result[str, AppError]:
+def fetch_config(url: str) -> Result[dict, AppError]:
     ...
 
 err = NetworkError.Timeout
-print(err.description)  # "connection timed out"
-print(str(err))         # "NetworkError.Timeout: connection timed out"
-
-# Merge with | operator at the class level
-Combined = NetworkError | ParseError
+print(err.description)  # "connection timed out after the deadline"
+print(str(err))         # "NetworkError.Timeout: connection timed out after the deadline"
+print(repr(err))        # "NetworkError.Timeout"
 ```
+
+Why not `StrEnum`?  `StrEnum` makes members equal to their string value
+(`NetworkError.Timeout == "Timeout"` is `True`), which blurs the line between domain
+errors and raw strings and makes exhaustiveness checking unreliable.  `ErrorSet`
+keeps description strings internal and never exposes them as the member's identity.
+It also works on Python 3.10+ -- `StrEnum` requires 3.11.
 
 ---
 
-### `Sum[A, B, ...]`
+## `Sum[A, B, ...]` -- exhaustive tagged unions
 
-A tagged-union base class for exhaustive dispatch. Replaces `isinstance` chains.
+No docs yet -- coming soon.
+
+Replace `isinstance` chains with a single `match` call that the type checker can
+verify is exhaustive:
 
 ```python
+from dataclasses import dataclass
 from typani import Sum
+
+@dataclass
+class Circle:
+    radius: float
+
+@dataclass
+class Square:
+    side: float
+
+@dataclass
+class Triangle:
+    base: float
+    height: float
 
 class Shape(Sum[Circle, Square, Triangle]):
     pass
 
 def area(shape: Shape) -> float:
     return shape.match({
-        Circle:   lambda c: 3.14159 * c.r ** 2,
+        Circle:   lambda c: 3.14159 * c.radius ** 2,
         Square:   lambda s: s.side ** 2,
         Triangle: lambda t: 0.5 * t.base * t.height,
     })
 ```
 
-`match` raises `TypeError` if any variant is missing from the dict.  Use `check` to validate the dict without calling anything.
+`match` raises `TypeError` if any variant is missing from the dict -- you cannot
+forget a case.  Compare to the equivalent `isinstance` version, which silently falls
+through to `None` if you add a new variant and forget to update every dispatch site.
 
 ---
 
-### `dispatch`
+## `dispatch` -- dict-based isinstance dispatch
 
-Lightweight dict-based dispatch without the `Sum` base class requirement.
+For when you want the `Sum` dispatch style but can't or don't want to change the
+class hierarchy:
 
 ```python
 from typani import dispatch
 
-result = dispatch(value, {
-    int:   lambda n: f"integer: {n}",
-    str:   lambda s: f"string: {s}",
-    float: lambda f: f"float: {f}",
-})
+def describe(value: int | str | list) -> str:
+    return dispatch(value, {
+        int:  lambda n: f"the integer {n}",
+        str:  lambda s: f"the string {s!r}",
+        list: lambda l: f"a list of {len(l)} items",
+    })
 ```
 
-Pass `default=...` to allow unmatched types instead of raising `TypeError`.
+First matching type wins (subclasses before base classes).  Pass `default=...` to
+handle unknown types instead of raising `TypeError`.
 
 ---
 
-### `Singleton` / `SingletonMeta`
+## `@singleton` -- singleton semantics for any class
 
-A base class (or metaclass) that ensures at most one instance is ever created.
+[Full docs](docs/singleton.md)
 
-```python
-from typani import Singleton
-
-class AppConfig(Singleton):
-    def __init__(self) -> None:
-        self.debug = False
-
-cfg1 = AppConfig()
-cfg2 = AppConfig()
-assert cfg1 is cfg2  # True
-```
-
----
-
-### `@singleton`
-
-A decorator that adds singleton semantics to any class, including Pydantic `BaseModel` subclasses. Solves the metaclass conflict that prevents `class Cfg(BaseModel, Singleton)`.
+The decorator works on regular classes, classes with existing bases, and Pydantic
+`BaseModel` subclasses.  No metaclass conflicts.
 
 ```python
 from pydantic import BaseModel
@@ -188,19 +225,49 @@ class AppConfig(BaseModel):
     host: str = "localhost"
     port: int = 8080
 
-cfg1 = AppConfig(debug=True, host="prod.example.com", port=9000)
-cfg2 = AppConfig()
-assert cfg1 is cfg2     # True
-assert cfg2.debug       # True -- first call's values are kept
+# First call -- constructs and caches
+cfg = AppConfig(debug=True, host="prod.example.com", port=9000)
+
+# Every subsequent call -- returns the same object, ignores new args
+same = AppConfig(debug=False)
+assert cfg is same    # True
+assert same.debug     # True -- first call's values are kept
 ```
 
-Use `@singleton(strict=True)` to raise `RuntimeError` on any second instantiation attempt instead of silently returning the cached instance.
+`class AppConfig(BaseModel, Singleton)` would raise a `TypeError` at import time
+because Python resolves metaclass conflicts before any Python code can run.
+`@singleton` sidesteps this by creating the merged metaclass *after* the class
+exists, then producing a thin subclass using it.
+
+Use `strict=True` to raise instead of silently returning the cached instance:
+
+```python
+@singleton(strict=True)
+class Database:
+    def __init__(self, url: str) -> None:
+        self.url = url
+
+db = Database("postgres://localhost/mydb")
+Database("sqlite://")   # RuntimeError: Database is a strict singleton...
+```
+
+Also available as base classes when you don't need Pydantic:
+
+```python
+from typani import Singleton, StrictSingleton
+
+class AppConfig(Singleton): ...         # silent return on re-instantiation
+class Database(StrictSingleton): ...    # RuntimeError on re-instantiation
+Database.instance()                     # retrieves the one created instance
+```
 
 ---
 
-### `SingletonModel`
+## `SingletonModel` -- Pydantic BaseModel + singleton
 
-A `pydantic.BaseModel` subclass with singleton semantics built in. Requires `pydantic>=2.0`.
+[Full docs](docs/singleton.md)
+
+For the `class Cfg(SingletonModel): ...` style without the decorator:
 
 ```python
 from typani import SingletonModel
@@ -211,62 +278,58 @@ class AppConfig(SingletonModel):
     host: str = "localhost"
     port: int = Field(default=8080, ge=1, le=65535)
 
-cfg1 = AppConfig(debug=True)
-cfg2 = AppConfig()
-assert cfg1 is cfg2  # True
+cfg = AppConfig(debug=True, host="prod.example.com", port=9000)
+assert AppConfig() is cfg  # True
 ```
+
+Requires `pip install typani[pydantic]`.
 
 ---
 
-### `StrictSingleton` / `StrictSingletonMeta`
+## `Unit` -- zero-size marker type
 
-Like `Singleton`, but raises `RuntimeError` on any second instantiation. Retrieval is via `.instance()`.
+[Full docs](docs/unit.md)
 
-```python
-from typani import StrictSingleton
-
-class Database(StrictSingleton):
-    def __init__(self, url: str) -> None:
-        self.url = url
-
-db = Database("postgres://localhost/mydb")
-Database("sqlite://")        # RuntimeError -- already instantiated
-Database.instance()          # returns the original db
-```
-
----
-
-### `Unit`
-
-A zero-size type with no attributes. Useful as a sentinel or as the success type of a `Result` that carries no value.
+The Python equivalent of Rust's `()`.  Use it as the success value of a `Result`
+that has no data to return, or as a lightweight sentinel.
 
 ```python
 from typani import Unit, Ok, Result
 
-def save(data: bytes) -> Result[Unit, str]:
-    ...
-    return Ok(Unit())
+def write_file(path: str, data: bytes) -> Result[Unit, str]:
+    try:
+        with open(path, "wb") as f:
+            f.write(data)
+        return Ok(Unit())
+    except OSError as e:
+        return Err(str(e))
 ```
 
-All subclasses are forced to `__slots__ = ()`.
+`Unit` forces `__slots__ = ()` on every subclass -- instances carry no attributes and
+cannot accidentally grow state.
 
 ---
 
-### `Unreachable`
+## `Unreachable` -- exhaustiveness sentinel
 
-Raises `AssertionError` when instantiated. Use as the argument to `typing.assert_never` to get exhaustiveness checking from your type checker.
+[Full docs](docs/unreachable.md)
+
+Works with `typing.assert_never` to get static exhaustiveness checking.  Raises
+`AssertionError` with a location-aware message if it is ever actually reached at
+runtime.
 
 ```python
 from typing import assert_never
 from typani import Unreachable
 
-def handle(x: int | str) -> str:
-    if isinstance(x, int):
-        return str(x)
-    elif isinstance(x, str):
-        return x
+def handle(value: int | str) -> str:
+    if isinstance(value, int):
+        return str(value)
+    elif isinstance(value, str):
+        return value
     else:
-        raise Unreachable(x)
+        assert_never(value)   # mypy/pyright error if value can be anything else
+        raise Unreachable(value)
 ```
 
 ---
