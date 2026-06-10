@@ -25,16 +25,10 @@ class Triangle:
     base: float
     height: float
 
-Shape = Sum[Circle, Square, Triangle]
+Shape = Sum[Circle, Triangle, Square]
 ```
 
-`Shape` is now a class whose `_variants` tuple is `(Circle, Square, Triangle)`.
-You can also subclass it to give the union a more meaningful name:
-
-```python
-class Shape(Sum[Circle, Square, Triangle]):
-    pass
-```
+`Shape` is now a class whose `_variants` tuple is `(Circle, Triangle, Square)`.
 
 ## Exhaustive dispatch with `match`
 
@@ -44,8 +38,8 @@ import math
 def area(shape: Shape) -> float:
     return Shape.match(shape, {
         Circle:   lambda c: math.pi * c.radius ** 2,
-        Square:   lambda s: s.side ** 2,
         Triangle: lambda t: 0.5 * t.base * t.height,
+        Square:   lambda s: s.side ** 2,
     })
 
 print(area(Circle(radius=1.0)))   # 3.14159...
@@ -57,11 +51,11 @@ forget a case silently:
 
 ```python
 Shape.match(shape, {
-    Circle: lambda c: "round",
-    Square: lambda s: "square",
-    # Triangle missing!
+    Circle:   lambda c: "round",
+    Triangle: lambda t: "pointy",
+    # Square missing!
 })
-# TypeError: Non-exhaustive match on Shape: missing handlers for Triangle
+# TypeError: Non-exhaustive match on Shape: missing handlers for Square
 ```
 
 Compare to the equivalent `isinstance` version:
@@ -70,9 +64,9 @@ Compare to the equivalent `isinstance` version:
 # Old way -- adding a new variant and forgetting this function gives no error
 if isinstance(shape, Circle):
     ...
-elif isinstance(shape, Square):
+elif isinstance(shape, Triangle):
     ...
-# Triangle falls through to None silently
+# Square falls through to None silently
 ```
 
 ## Allowing a default

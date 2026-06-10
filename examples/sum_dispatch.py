@@ -35,9 +35,7 @@ class Triangle:
     height: float
 
 
-# Declare the closed set of shapes
-class Shape(Sum[Circle, Rectangle, Triangle]):
-    pass
+Shape = Sum[Circle, Triangle, Rectangle]
 
 
 # ---------------------------------------------------------------------------
@@ -48,16 +46,16 @@ class Shape(Sum[Circle, Rectangle, Triangle]):
 def area(shape: object) -> float:
     return Shape.match(shape, {
         Circle:    lambda c: math.pi * c.radius ** 2,
-        Rectangle: lambda r: r.width * r.height,
         Triangle:  lambda t: 0.5 * t.base * t.height,
+        Rectangle: lambda r: r.width * r.height,
     })
 
 
 def describe(shape: object) -> str:
     return Shape.match(shape, {
         Circle:    lambda c: f"circle with radius {c.radius}",
-        Rectangle: lambda r: f"{r.width}x{r.height} rectangle",
         Triangle:  lambda t: f"triangle (base {t.base}, height {t.height})",
+        Rectangle: lambda r: f"{r.width}x{r.height} rectangle",
     })
 
 

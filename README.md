@@ -17,7 +17,7 @@ pip install typani[pydantic]
 
 ## `Result[T, E]` -- explicit success or failure
 
-[Full docs](docs/result.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/result.md)
 
 Tired of `try/except` chains that silently swallow errors, or functions that return
 `None` and leave the caller guessing why?  `Result` makes the failure path a
@@ -70,7 +70,7 @@ result` noise at every step.
 
 ## `Option[T]` -- explicit presence or absence
 
-[Full docs](docs/option.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/option.md)
 
 `T | None` is untracked by the type checker in many real codebases.  `Option[T]` is
 a real container: the type checker forces you to handle the absent case.
@@ -107,7 +107,7 @@ print(missing.unwrap_or("unknown"))  # "unknown"
 
 ## `ErrorSet` -- Zig-inspired typed error enums
 
-[Full docs](docs/error_set.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/error_set.md)
 
 Define errors with human-readable descriptions attached, merge them into a global
 set, and use them as `Result` error types -- all without accidentally comparing them
@@ -148,7 +148,7 @@ It also works on Python 3.10+ -- `StrEnum` requires 3.11.
 
 ## `Sum[A, B, ...]` -- exhaustive tagged unions
 
-No docs yet -- coming soon.
+[Full docs](https://github.com/lognd/typani/blob/main/docs/sum.md)
 
 Replace `isinstance` chains with a single `match` call that the type checker can
 verify is exhaustive:
@@ -170,14 +170,13 @@ class Triangle:
     base: float
     height: float
 
-class Shape(Sum[Circle, Square, Triangle]):
-    pass
+Shape = Sum[Circle, Triangle, Square]
 
 def area(shape: Shape) -> float:
-    return shape.match({
+    return Shape.match(shape, {
         Circle:   lambda c: 3.14159 * c.radius ** 2,
-        Square:   lambda s: s.side ** 2,
         Triangle: lambda t: 0.5 * t.base * t.height,
+        Square:   lambda s: s.side ** 2,
     })
 ```
 
@@ -188,6 +187,8 @@ through to `None` if you add a new variant and forget to update every dispatch s
 ---
 
 ## `dispatch` -- dict-based isinstance dispatch
+
+[Full docs](https://github.com/lognd/typani/blob/main/docs/dispatch.md)
 
 For when you want the `Sum` dispatch style but can't or don't want to change the
 class hierarchy:
@@ -210,7 +211,7 @@ handle unknown types instead of raising `TypeError`.
 
 ## `@singleton` -- singleton semantics for any class
 
-[Full docs](docs/singleton.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/singleton.md)
 
 The decorator works on regular classes, classes with existing bases, and Pydantic
 `BaseModel` subclasses.  No metaclass conflicts.
@@ -265,7 +266,7 @@ Database.instance()                     # retrieves the one created instance
 
 ## `SingletonModel` -- Pydantic BaseModel + singleton
 
-[Full docs](docs/singleton.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/singleton.md)
 
 For the `class Cfg(SingletonModel): ...` style without the decorator:
 
@@ -288,7 +289,7 @@ Requires `pip install typani[pydantic]`.
 
 ## `Unit` -- zero-size marker type
 
-[Full docs](docs/unit.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/unit.md)
 
 The Python equivalent of Rust's `()`.  Use it as the success value of a `Result`
 that has no data to return, or as a lightweight sentinel.
@@ -312,7 +313,7 @@ cannot accidentally grow state.
 
 ## `Unreachable` -- exhaustiveness sentinel
 
-[Full docs](docs/unreachable.md)
+[Full docs](https://github.com/lognd/typani/blob/main/docs/unreachable.md)
 
 Works with `typing.assert_never` to get static exhaustiveness checking.  Raises
 `AssertionError` with a location-aware message if it is ever actually reached at
