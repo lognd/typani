@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "typani"
+version = "0.0.1"
+description = "I extracted out a couple of the types that I've found myself using across a couple of projects. This repository is mostly for myself, but if you find it useful, I'm glad!"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Logan Dapp", email = "logan@logand.app" }
+]
+
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.4",
+    "black>=24",
+    "mypy>=1.10",
+    "pytest>=8",
+    "isort>=5",
+    "pydantic>=2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/lognd/typani"
+Documentation = "https://github.com/lognd/typani/docs"
+Source = "https://github.com/lognd/typani/src/typani"
+Issues = "https://github.com/lognd/typani/issues"
+
+[tool.setuptools]
+packages = { find = { where = ["src"] } }
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')"
+]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+py_version = 310
+src_paths = ["src", "tests"]
+known_first_party = ["lograder"]
