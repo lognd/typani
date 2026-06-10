@@ -21,7 +21,7 @@ def handle(value: int | str) -> str:
     else:
         # This branch is statically unreachable; mypy/pyright will verify it.
         assert_never(value)
-        raise Unreachable()  # never actually called
+        Unreachable()  # TypeError fires inside __new__; raise is redundant
 ```
 
 You can also use it as a return type annotation for functions that must never
