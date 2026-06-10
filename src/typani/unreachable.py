@@ -23,7 +23,7 @@ class Unreachable(Unit):
                 return value
             else:
                 assert_never(value)
-                raise Unreachable()  # never actually runs
+                Unreachable()  # TypeError fires inside __new__; raise is redundant
 
     The ``TypeError`` message includes the source file, line number, and
     function name of the call site so that accidental instantiations are

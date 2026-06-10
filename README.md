@@ -329,7 +329,7 @@ def handle(value: int | str) -> str:
         return value
     else:
         assert_never(value)   # mypy/pyright error if value can be anything else
-        raise Unreachable(value)
+        Unreachable()         # TypeError the moment this line is reached
 ```
 
 ---
