@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "typani"
-version = "0.0.1"
+version = "0.0.2"
 description = "I extracted out a couple of the types that I've found myself using across a couple of projects. This repository is mostly for myself, but if you find it useful, I'm glad!"
 readme = "README.md"
 requires-python = ">=3.10"
