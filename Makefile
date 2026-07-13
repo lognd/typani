@@ -7,7 +7,7 @@ ISORT   := $(VENV)/bin/isort
 MYPY    := $(VENV)/bin/mypy
 PYTEST  := $(VENV)/bin/pytest
 
-.PHONY: all venv install lint format typecheck test clean
+.PHONY: all venv install lint format typecheck test clean clean-dist build upload
 
 all: lint typecheck test
 
@@ -38,3 +38,15 @@ clean:
 	rm -rf $(VENV) .mypy_cache .pytest_cache .ruff_cache
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+
+# ---------- build & publish ----------
+
+clean-dist:
+	rm -rf dist/ build/
+
+build: install clean-dist
+	$(PYTHON) -m build
+
+upload: build
+	@set -a && . ./.env && set +a; \
+	$(VENV)/bin/twine upload dist/*
