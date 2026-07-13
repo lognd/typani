@@ -49,4 +49,4 @@ build: install clean-dist
 
 upload: build
 	@set -a && . ./.env && set +a; \
-	$(VENV)/bin/twine upload dist/*
+	TWINE_USERNAME=__token__ TWINE_PASSWORD="$$UV_PUBLISH_TOKEN" $(VENV)/bin/twine upload dist/*
