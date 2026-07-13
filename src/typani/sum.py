@@ -82,7 +82,7 @@ class Sum(metaclass=_SumMeta):
                     f"Non-exhaustive match on {cls.__name__}: "
                     f"missing handlers for {missing}"
                 )
-        return dispatch(value, cases, default=default)  # type: ignore[return-value]
+        return dispatch(value, cases, default=default)
 
     @classmethod
     def check(cls, value: object) -> bool:

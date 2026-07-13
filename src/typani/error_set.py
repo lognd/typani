@@ -32,15 +32,15 @@ class _ErrorSetMeta(EnumMeta):
     Chains flatten correctly: ``(A | B) | C`` is the same as ``A | B | C``.
     """
 
-    def __or__(cls, other: Any) -> type[ErrorSet]:  # type: ignore[override]
+    def __or__(cls, other: Any) -> type[ErrorSet]:
         """Return a cached, canonical merge of *cls* and *other*."""
         if not (isinstance(other, type) and issubclass(other, ErrorSet)):
-            return NotImplemented  # type: ignore[return-value]
+            return NotImplemented
         key: frozenset[type] = _leaves(cls) | _leaves(other)  # type: ignore[arg-type]
         if key in _merge_cache:
             return _merge_cache[key]
         # Sort by class name for a stable, human-readable result name.
-        sorted_sets: list[type[ErrorSet]] = sorted(key, key=lambda s: s.__name__)  # type: ignore[type-var]
+        sorted_sets: list[type[ErrorSet]] = sorted(key, key=lambda s: s.__name__)
         name = "_".join(s.__name__ for s in sorted_sets)
         result = merge(*sorted_sets, name=name)
         _source_map[result] = key
@@ -120,4 +120,4 @@ def merge(*sets: type[ErrorSet], name: str = "MergedErrorSet") -> type[ErrorSet]
                     f"(first seen in a previous set)"
                 )
             members[member.name] = str(member.value)
-    return ErrorSet(name, members)  # type: ignore[return-value]
+    return ErrorSet(name, members)  # type: ignore[call-arg,return-value]
