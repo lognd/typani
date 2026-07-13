@@ -4,14 +4,14 @@ from typani import Err, ErrorSet, Ok, Result, merge
 
 
 class NetworkError(ErrorSet):
-    Timeout    = "connection timed out"
-    Refused    = "connection refused"
+    Timeout = "connection timed out"
+    Refused = "connection refused"
     DnsFailure = "could not resolve hostname"
 
 
 class ParseError(ErrorSet):
     InvalidJson = "payload is not valid JSON"
-    MissingKey  = "required key not present"
+    MissingKey = "required key not present"
 
 
 AppError = merge(NetworkError, ParseError, name="AppError")
@@ -154,6 +154,7 @@ def test_result_class_getitem_with_error_set() -> None:
 
 def test_int_or_error_set_is_union_type() -> None:
     import types
+
     union = int | NetworkError
     assert isinstance(union, types.UnionType)
 
@@ -168,5 +169,6 @@ def test_error_set_or_error_set_is_merged_set() -> None:
 
 def test_error_set_or_non_error_set_falls_back_to_union() -> None:
     import types
+
     union = NetworkError | str
     assert isinstance(union, types.UnionType)
