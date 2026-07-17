@@ -62,3 +62,15 @@ line_length = 88
 py_version = 310
 src_paths = ["src", "tests"]
 known_first_party = ["lograder"]
+
+[tool.frob]
+# typani's own type-checking toolchain is mypy (Makefile `typecheck`
+# target, mypy-py310.ini). frob's bundled `ty` disagrees with mypy on a
+# batch of pre-existing typing diagnostics across src/tests/examples;
+# resolving those is legacy debt tracked separately (see tickets/), not
+# something a frob adoption pass should silently paper over with source
+# edits. Skip ty at the frob-check level rather than duplicate/replace the
+# project's chosen type checker. check_skip_ty is only read from
+# pyproject.toml's [tool.frob] table (AppConfig.from_external), not from
+# frob.toml, despite frob.toml owning check_base/[graph]/[gates]/[testing].
+check_skip_ty = true

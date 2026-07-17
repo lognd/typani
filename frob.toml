@@ -1,0 +1,34 @@
+check_base = "main"
+
+[graph]
+exclude = ["dist/**", "examples/**", "src/typani/singleton.py"]
+# src/typani/singleton.py excluded: frob 0.1.0a0's graph builder crashes with
+# sqlite3.IntegrityError (UNIQUE constraint failed: symbols.symref) on
+# @typing.overload chains (multiple `singleton` overloads sharing one
+# symref). Filed as T-0001; re-include once the graph builder dedupes
+# overload stubs upstream.
+
+
+[gates.severity]
+# Legacy-adoption baseline: snapshot-wide obligations warn on the
+# un-annotated legacy surface while annotation coverage grows; diff-scoped
+# and drift rules stay hard errors.
+COV001 = "warn"
+TEST001 = "warn"
+TEST002 = "warn"
+TEST003 = "warn"
+TEST005 = "warn"
+TEST006 = "warn"
+
+[testing]
+min_unit_cases = 1
+min_integration = 1
+unit_branch_cov = 90
+module_line_cov = 85
+system_line_cov = 80
+
+[[test.runner]]
+language = "python"
+command = [".venv/bin/pytest", "-q", "{ids}"]
+all_command = [".venv/bin/pytest", "-q"]
+cwd = "."
