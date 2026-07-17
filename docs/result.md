@@ -1,3 +1,4 @@
+<!-- frob:describes src/typani/result.py::Result -->
 # Result
 
 `Result[T, E]` models a computation that either succeeds with a value of type `T` or
@@ -6,6 +7,8 @@ fails with an error of type `E`. It is inspired by Rust's `Result<T, E>`.
 Exactly one of `ok` or `err` is set; constructing a `Result` with both or neither
 raises `TypeError`.
 
+<!-- frob:describes src/typani/result.py::Ok -->
+<!-- frob:describes src/typani/result.py::Err -->
 ## Constructors
 
 Use the convenience functions instead of `Result(...)` directly:

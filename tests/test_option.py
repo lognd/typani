@@ -3,6 +3,8 @@ import pytest
 from typani.option import Nothing, Option, Some
 
 
+# frob:tests src/typani/option.py::Some
+# frob:tests src/typani/option.py::Option
 def test_some_is_some() -> None:
     o: Option[int] = Some(5)
     assert o.is_some
@@ -10,6 +12,8 @@ def test_some_is_some() -> None:
     assert o.some == 5
 
 
+# frob:tests src/typani/option.py::Nothing
+# frob:tests src/typani/option.py::Option
 def test_nothing_is_nothing() -> None:
     o: Option[int] = Nothing()
     assert o.is_nothing

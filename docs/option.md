@@ -1,9 +1,12 @@
+<!-- frob:describes src/typani/option.py::Option -->
 # Option
 
 `Option[T]` models an optional value: either `Some(value)` or `Nothing`. It is the
 explicit, composable alternative to Python's bare `T | None`. Where `Optional[T]` is
 a type alias, `Option[T]` is a real container with a transformation API.
 
+<!-- frob:describes src/typani/option.py::Some -->
+<!-- frob:describes src/typani/option.py::Nothing -->
 ## Constructors
 
 ```python

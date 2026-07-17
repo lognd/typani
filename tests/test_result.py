@@ -3,6 +3,8 @@ import pytest
 from typani.result import Err, Ok, Result
 
 
+# frob:tests src/typani/result.py::Ok
+# frob:tests src/typani/result.py::Result
 def test_ok_is_ok() -> None:
     r: Result[int, str] = Ok(42)
     assert r.is_ok
@@ -11,6 +13,8 @@ def test_ok_is_ok() -> None:
     assert r.err is None
 
 
+# frob:tests src/typani/result.py::Err
+# frob:tests src/typani/result.py::Result
 def test_err_is_err() -> None:
     r: Result[int, str] = Err("oops")
     assert r.is_err
@@ -19,11 +23,13 @@ def test_err_is_err() -> None:
     assert r.ok is None
 
 
+# frob:tests src/typani/result.py::Result
 def test_neither_ok_nor_err_raises() -> None:
     with pytest.raises(TypeError, match="neither"):
         Result()  # type: ignore[call-overload]
 
 
+# frob:tests src/typani/result.py::Result
 def test_both_ok_and_err_raises() -> None:
     with pytest.raises(TypeError, match="both"):
         Result(ok=1, err="x")  # type: ignore[call-overload]

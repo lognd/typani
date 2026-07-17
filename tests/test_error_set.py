@@ -18,6 +18,7 @@ class AuthError(ErrorSet):
     Unauthorized = "Missing or invalid credentials"
 
 
+# frob:tests src/typani/error_set.py::ErrorSet
 def test_member_description() -> None:
     assert NetworkError.Timeout.description == "Connection timed out after the deadline"
     assert (
@@ -72,6 +73,7 @@ def test_iteration_over_members() -> None:
 # --- merge / global error set ---
 
 
+# frob:tests src/typani/error_set.py::merge
 def test_merge_combines_members() -> None:
     All = merge(NetworkError, ParseError, name="AllErrors")
     names = {m.name for m in All}

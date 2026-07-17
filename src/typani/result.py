@@ -20,6 +20,7 @@ class _OK_UNIT(Unit): ...
 class _EMPTY_UNIT(Unit): ...
 
 
+# frob:doc docs/result.md#result
 class Result(Generic[T, E]):
     """Rust-inspired ``Result<T, E>``: a value that is either ``Ok(T)`` or ``Err(E)``.
 
@@ -198,12 +199,14 @@ class Result(Generic[T, E]):
 
 
 # noinspection PyPep8Naming
+# frob:doc docs/result.md#constructors
 def Ok(ok: T, /) -> Result[T, E]:
     """Construct a successful :class:`Result` wrapping *ok*."""
     return Result(ok=ok)
 
 
 # noinspection PyPep8Naming
+# frob:doc docs/result.md#constructors
 def Err(err: E, /) -> Result[T, E]:
     """Construct a failed :class:`Result` wrapping *err*."""
     return Result(err=err)

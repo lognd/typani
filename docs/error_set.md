@@ -1,3 +1,4 @@
+<!-- frob:describes src/typani/error_set.py::ErrorSet -->
 # ErrorSet
 
 `ErrorSet` is a Zig-inspired typed error enum where each member carries a human-readable
@@ -43,6 +44,7 @@ if result.is_err:
     print(result.err)   # DnsFailure: Could not resolve the hostname
 ```
 
+<!-- frob:describes src/typani/error_set.py::merge -->
 ## Global / merged error sets
 
 In Zig, error sets can be unioned together with the `||` operator.  `ErrorSet`

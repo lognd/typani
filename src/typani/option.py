@@ -16,6 +16,7 @@ class _SOME_UNIT(Unit): ...
 _SOME_SENTINEL: Final[_SOME_UNIT] = _SOME_UNIT()
 
 
+# frob:doc docs/option.md#option
 class Option(Generic[T]):
     """An optional value: either :func:`Some` (a present value) or :func:`Nothing`.
 
@@ -113,12 +114,14 @@ class Option(Generic[T]):
 
 
 # noinspection PyPep8Naming
+# frob:doc docs/option.md#constructors
 def Some(value: T, /) -> Option[T]:
     """Construct a present :class:`Option` wrapping *value*."""
     return Option(value=value)
 
 
 # noinspection PyPep8Naming
+# frob:doc docs/option.md#constructors
 def Nothing() -> Option[T]:
     """Construct an absent :class:`Option`."""
     # noinspection PyUnnecessaryCast

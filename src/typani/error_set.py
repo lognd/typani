@@ -48,6 +48,7 @@ class _ErrorSetMeta(EnumMeta):
         return result
 
 
+# frob:doc docs/error_set.md#errorset
 class ErrorSet(Enum, metaclass=_ErrorSetMeta):
     """Zig-inspired typed error enum where each member carries a human-readable description.
 
@@ -96,6 +97,7 @@ class ErrorSet(Enum, metaclass=_ErrorSetMeta):
         return f"{self.__class__.__name__}.{self.name}"
 
 
+# frob:doc docs/error_set.md#global--merged-error-sets
 def merge(*sets: type[ErrorSet], name: str = "MergedErrorSet") -> type[ErrorSet]:
     """Return a new :class:`ErrorSet` that is the union of all given sets.
 
