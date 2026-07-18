@@ -12,7 +12,6 @@ from dataclasses import dataclass
 
 from typani import Sum, dispatch
 
-
 # ---------------------------------------------------------------------------
 # Variant types
 # ---------------------------------------------------------------------------
@@ -44,19 +43,25 @@ Shape = Sum[Circle, Triangle, Rectangle]
 
 
 def area(shape: object) -> float:
-    return Shape.match(shape, {
-        Circle:    lambda c: math.pi * c.radius ** 2,
-        Triangle:  lambda t: 0.5 * t.base * t.height,
-        Rectangle: lambda r: r.width * r.height,
-    })
+    return Shape.match(
+        shape,
+        {
+            Circle: lambda c: math.pi * c.radius**2,
+            Triangle: lambda t: 0.5 * t.base * t.height,
+            Rectangle: lambda r: r.width * r.height,
+        },
+    )
 
 
 def describe(shape: object) -> str:
-    return Shape.match(shape, {
-        Circle:    lambda c: f"circle with radius {c.radius}",
-        Triangle:  lambda t: f"triangle (base {t.base}, height {t.height})",
-        Rectangle: lambda r: f"{r.width}x{r.height} rectangle",
-    })
+    return Shape.match(
+        shape,
+        {
+            Circle: lambda c: f"circle with radius {c.radius}",
+            Triangle: lambda t: f"triangle (base {t.base}, height {t.height})",
+            Rectangle: lambda r: f"{r.width}x{r.height} rectangle",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -69,13 +74,17 @@ def render(value: object) -> str:
     Open-ended dispatch that handles a wider range of types.
     No upfront closed set; 'default' handles anything unexpected.
     """
-    return dispatch(value, {
-        Circle:    lambda c: f"<circle r={c.radius:.2f}>",
-        Rectangle: lambda r: f"<rect {r.width:.2f}x{r.height:.2f}>",
-        Triangle:  lambda t: f"<tri b={t.base:.2f} h={t.height:.2f}>",
-        int:       lambda n: f"<int {n}>",
-        str:       lambda s: f"<str {s!r}>",
-    }, default="<unknown>")
+    return dispatch(
+        value,
+        {
+            Circle: lambda c: f"<circle r={c.radius:.2f}>",
+            Rectangle: lambda r: f"<rect {r.width:.2f}x{r.height:.2f}>",
+            Triangle: lambda t: f"<tri b={t.base:.2f} h={t.height:.2f}>",
+            int: lambda n: f"<int {n}>",
+            str: lambda s: f"<str {s!r}>",
+        },
+        default="<unknown>",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -104,10 +113,13 @@ def main() -> None:
     print("=== exhaustiveness check ===")
     try:
         # Remove one handler to trigger the exhaustiveness error
-        Shape.match(Circle(radius=1.0), {
-            Circle: lambda c: "circle",
-            # Rectangle and Triangle intentionally missing
-        })
+        Shape.match(
+            Circle(radius=1.0),
+            {
+                Circle: lambda c: "circle",
+                # Rectangle and Triangle intentionally missing
+            },
+        )
     except TypeError as exc:
         print(f"  Caught: {exc}")
 

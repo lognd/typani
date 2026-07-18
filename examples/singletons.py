@@ -28,7 +28,7 @@ settings = AppSettings(debug=True, log_level="DEBUG")
 # Every subsequent call returns the same object
 also_settings = AppSettings(debug=False, log_level="WARNING")
 assert settings is also_settings
-assert settings.debug is True          # first-call values are kept
+assert settings.debug is True  # first-call values are kept
 print(f"settings: debug={settings.debug}, log_level={settings.log_level}")
 
 
@@ -53,7 +53,7 @@ class Cache:
 
 
 cache_a = Cache(max_size=1024)
-cache_b = Cache()                      # returns same object
+cache_b = Cache()  # returns same object
 assert cache_a is cache_b
 assert cache_a.max_size == 1024
 
@@ -75,7 +75,7 @@ try:
         workers: int = 4
 
     cfg1 = ServerConfig(host="prod.example.com", port=9000, workers=8)
-    cfg2 = ServerConfig(host="ignored", port=80)   # returns same object
+    cfg2 = ServerConfig(host="ignored", port=80)  # returns same object
     assert cfg1 is cfg2
     assert cfg2.host == "prod.example.com"
     print(f"server config: host={cfg1.host}, port={cfg1.port}, workers={cfg1.workers}")

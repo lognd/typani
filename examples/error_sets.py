@@ -11,27 +11,26 @@ import random
 
 from typani import Err, ErrorSet, Ok, Result
 
-
 # ---------------------------------------------------------------------------
 # Per-domain error sets
 # ---------------------------------------------------------------------------
 
 
 class NetworkError(ErrorSet):
-    Timeout    = "connection timed out after the deadline"
-    Refused    = "remote host actively refused the connection"
+    Timeout = "connection timed out after the deadline"
+    Refused = "remote host actively refused the connection"
     DnsFailure = "could not resolve the hostname"
 
 
 class ParseError(ErrorSet):
     InvalidJson = "payload is not valid JSON"
-    MissingKey  = "required key not present in the payload"
-    BadType     = "field value has an unexpected type"
+    MissingKey = "required key not present in the payload"
+    BadType = "field value has an unexpected type"
 
 
 class AuthError(ErrorSet):
     Unauthorized = "request lacks valid authentication credentials"
-    Forbidden    = "authenticated user lacks permission for this resource"
+    Forbidden = "authenticated user lacks permission for this resource"
     TokenExpired = "authentication token has expired"
 
 
@@ -58,6 +57,7 @@ def fetch_raw(url: str) -> Result[str, NetworkError]:
 def parse_user(payload: str) -> Result[dict, ParseError]:
     """Simulate JSON parsing that can fail with a ParseError."""
     import json
+
     try:
         data = json.loads(payload)
     except json.JSONDecodeError:
@@ -86,7 +86,7 @@ def get_admin_user(url: str) -> Result[dict, AppError]:
     """
     raw = fetch_raw(url)
     if raw.is_err:
-        return Err(AppError[raw.danger_err.name])   # re-wrap into the merged set
+        return Err(AppError[raw.danger_err.name])  # re-wrap into the merged set
 
     parsed = parse_user(raw.danger_ok)
     if parsed.is_err:
