@@ -1,0 +1,205 @@
+// typani.strata -- typani's own architecture, modeled in strata (frob's
+// provable system-design language). typani is the FIRST sibling-repo
+// strata pilot: a small, pure Python Result/Option/ErrorSet library with
+// no I/O of its own. This file is dual-purpose -- it documents typani's
+// real module graph as enforced truth (`frob sys audit` gates on the
+// nodes/flows below matching what actually imports what in src/typani/),
+// and it exists to bug-hunt strata itself against a codebase it was not
+// built against.
+//
+// Every node's `code` glob was chosen by reading src/typani/*.py directly
+// (9 files, ~1000 lines total, see tickets.md T-0001/T-0002 for the two
+// pre-existing frob adoption gaps this model does not re-litigate). Every
+// flow below is a real `from typani.X import ...` edge, confirmed by
+// grepping each file's import block -- no aspirational edges.
+//
+// Capability surface: a direct grep of src/typani/ for subprocess/
+// os.system/open(/socket/requests/urllib/eval(/exec(/__import__/
+// os.environ found ZERO matches. typani does no filesystem, network,
+// process, or dynamic-eval I/O anywhere -- this is a pure in-memory
+// value-type library (Result/Option/Sum/ErrorSet/Unit/Singleton/
+// dispatch/Unreachable). Every node below therefore has NO `may`
+// declarations at all. That absence is the honest, deliberately-proven
+// claim of this model, not an oversight: `frob sys audit`'s SYS101
+// self-conformance check would flag a stale `may` the moment any node
+// gained an unmeasured capability, so the near-zero case is exactly as
+// falsifiable as a populated one.
+
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+module typani
+
+// -- nodes ----------------------------------------------------------
+
+// Public re-export surface: src/typani/__init__.py. Imports every leaf
+// module and re-exports its public names in __all__; nothing else in
+// this repo imports through anything but this file (or a leaf module
+// directly, which the flows below also cover since tests/examples import
+// leaves directly too -- see docs/index.md).
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+node api : trusted {
+    clearance Public;
+    code "src/typani/__init__.py";
+}
+
+// src/typani/unit.py: Unit/UnitMeta, the zero-information sentinel type
+// every other value type in this repo is built from (_OK_UNIT,
+// _EMPTY_UNIT, _SOME_UNIT all subclass Unit). Leaf: imports nothing
+// else in typani.
+// frob:doc docs/unit.md#unit
+// frob:ticket T-0005
+node unit : trusted {
+    clearance Public;
+    code "src/typani/unit.py";
+}
+
+// src/typani/unreachable.py: Unreachable, a Unit subclass used to mark
+// statically-unreachable branches (uses stdlib `inspect` only, no
+// typani-internal import besides unit).
+// frob:doc docs/unreachable.md#unreachable
+// frob:ticket T-0005
+node unreachable_mod : trusted {
+    clearance Public;
+    code "src/typani/unreachable.py";
+}
+
+// src/typani/dispatch.py: dispatch(), a structural-pattern-matching
+// helper. Leaf: imports nothing else in typani.
+// frob:doc docs/dispatch.md#dispatch
+// frob:ticket T-0005
+node dispatch_mod : trusted {
+    clearance Public;
+    code "src/typani/dispatch.py";
+}
+
+// src/typani/error_set.py: ErrorSet/_ErrorSetMeta/merge. Built on
+// stdlib enum + weakref only; imports nothing else in typani.
+// frob:doc docs/error_set.md#errorset
+// frob:ticket T-0005
+node error_set_mod : trusted {
+    clearance Public;
+    code "src/typani/error_set.py";
+}
+
+// src/typani/option.py: Option/Some/Nothing, built on Unit
+// (_SOME_UNIT subclasses Unit).
+// frob:doc docs/option.md#option
+// frob:ticket T-0005
+node option_mod : trusted {
+    clearance Public;
+    code "src/typani/option.py";
+}
+
+// src/typani/result.py: Result/Ok/Err, built on Unit (_OK_UNIT,
+// _EMPTY_UNIT subclass Unit).
+// frob:doc docs/result.md#result
+// frob:ticket T-0005
+node result_mod : trusted {
+    clearance Public;
+    code "src/typani/result.py";
+}
+
+// src/typani/sum.py: Sum, a tagged-union type whose .match()/.check()
+// are implemented on top of dispatch().
+// frob:doc docs/sum.md#sum
+// frob:ticket T-0005
+node sum_mod : trusted {
+    clearance Public;
+    code "src/typani/sum.py";
+}
+
+// src/typani/singleton.py: Singleton/StrictSingleton and friends.
+// Excluded from the frob graph itself (frob.toml [graph].exclude,
+// T-0001 -- the frob 0.1.0a0 graph builder crashes on this file's
+// @typing.overload chain), but the file exists and has no internal
+// typani import, so it is still modeled here as a leaf node with no
+// inbound/outbound typani flows besides `api`'s re-export.
+// frob:doc docs/singleton.md#singleton
+// frob:ticket T-0005
+node singleton_mod : trusted {
+    clearance Public;
+    code "src/typani/singleton.py";
+}
+
+// -- flows ------------------------------------------------------------
+
+// api re-exports every leaf module's public names (__init__.py's import
+// block, one line per module).
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_unit : api -> unit { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_unreachable : api -> unreachable_mod { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_dispatch : api -> dispatch_mod { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_error_set : api -> error_set_mod { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_option : api -> option_mod { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_result : api -> result_mod { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_sum : api -> sum_mod { label Public; }
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+flow f_api_singleton : api -> singleton_mod { label Public; }
+
+// unreachable.py: `from typani.unit import Unit`.
+// frob:doc docs/unreachable.md#unreachable
+// frob:ticket T-0005
+flow f_unreachable_unit : unreachable_mod -> unit { label Public; }
+
+// option.py: `from typani.unit import Unit`.
+// frob:doc docs/option.md#option
+// frob:ticket T-0005
+flow f_option_unit : option_mod -> unit { label Public; }
+
+// result.py: `from typani.unit import Unit`.
+// frob:doc docs/result.md#result
+// frob:ticket T-0005
+flow f_result_unit : result_mod -> unit { label Public; }
+
+// sum.py: `from typani.dispatch import dispatch`.
+// frob:doc docs/sum.md#sum
+// frob:ticket T-0005
+flow f_sum_dispatch : sum_mod -> dispatch_mod { label Public; }
+
+// -- claims ------------------------------------------------------------
+
+// Sanity check that api's re-export surface actually reaches every leaf
+// module it claims to re-export (mirrors frob.strata's own
+// c_gates_reach_tickets pattern: catch an accidentally-drawn dead end).
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+assert c_api_reaches_result reach api -> result_mod
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+assert c_api_reaches_option reach api -> option_mod
+// frob:doc docs/index.md#typani-documentation
+// frob:ticket T-0005
+assert c_api_reaches_sum reach api -> sum_mod
+
+// singleton.py has no internal typani import and nothing internal
+// imports it (only api's re-export touches it) -- it is architecturally
+// isolated within this repo, true today per direct read of
+// src/typani/singleton.py's import block.
+// frob:doc docs/singleton.md#singleton
+// frob:ticket T-0005
+assert c_singleton_isolated_from_result noflow singleton_mod -> result_mod
+// frob:doc docs/singleton.md#singleton
+// frob:ticket T-0005
+assert c_result_isolated_from_singleton noflow result_mod -> singleton_mod
+
+// error_set.py is a leaf with no internal typani import (stdlib enum +
+// weakref only) and nothing internal typani module imports it back --
+// true today per direct read of src/typani/error_set.py's import block.
+// frob:doc docs/error_set.md#errorset
+// frob:ticket T-0005
+assert c_error_set_isolated noflow error_set_mod -> unit

@@ -107,3 +107,22 @@ Evidence: pytest -q all green; frob check --stamp-coverage refreshed.
 Filed: none further (gaps 2 and 3 already tracked as T-0100/T-0101 by
 the orchestrator).
 Gates: frob check . -> PASS, 0 errors, 0 warnings.
+
+<!-- ticket:T-0005 -->
+```yaml
+id: T-0005
+title: 'typani.strata design model: TEST001/TEST003 unit+integration coverage debt'
+state: queued
+kind: docs
+origin: agent
+created: '2026-07-18'
+blocked_by: []
+parent: null
+scope:
+- design/typani.strata
+evidence: []
+attachments: []
+acceptance: []
+threat: null
+```
+The typani.strata pilot design model (first sibling-repo strata rollout, T-0150-style self-model exercise) has 12 flow nodes and 1 interface-level TEST003 gap with no frob:tests binding. TEST001/TEST003 are warn-severity per frob.toml's legacy-adoption baseline, matching COV001/TEST00x already warned there for src/typani/**. Deferred rather than fixed in the same pass as the model itself: writing property/unit tests against strata flow declarations (frob:tests kind="unit"/"integration") is new territory for this repo and should get its own scoped pass once the strata model has stabilized, not be rushed to silence warnings on first landing.
