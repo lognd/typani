@@ -22,12 +22,14 @@ AppError = merge(NetworkError, ParseError, name="AppError")
 # ---------------------------------------------------------------------------
 
 
+# frob:tests src/typani/error_set.py kind="integration"
 def test_ok_with_error_set_type() -> None:
     r: Result[str, NetworkError] = Ok("connected")
     assert r.is_ok
     assert r.ok == "connected"
 
 
+# frob:tests src/typani/result.py kind="integration"
 def test_err_with_error_set_member() -> None:
     r: Result[str, NetworkError] = Err(NetworkError.Timeout)
     assert r.is_err

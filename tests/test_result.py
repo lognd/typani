@@ -13,6 +13,14 @@ def test_ok_is_ok() -> None:
     assert r.err is None
 
 
+# frob:tests src/typani/result.py::Result.ok
+def test_ok_property_returns_value_or_none() -> None:
+    ok_result: Result[int, str] = Ok(7)
+    err_result: Result[int, str] = Err("bad")
+    assert ok_result.ok == 7
+    assert err_result.ok is None
+
+
 # frob:tests src/typani/result.py::Err
 # frob:tests src/typani/result.py::Result
 def test_err_is_err() -> None:

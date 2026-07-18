@@ -32,6 +32,7 @@ Number = Sum[int, float]
 # ---------------------------------------------------------------------------
 
 
+# frob:tests src/typani/sum.py kind="integration"
 def test_sum_name_reflects_variants() -> None:
     assert Shape.__name__ == "Sum[Circle, Square, Triangle]"
 
@@ -77,6 +78,9 @@ def test_check_subclass_of_variant() -> None:
 # ---------------------------------------------------------------------------
 
 
+# Sum.match delegates to dispatch() internally, so this exercises the
+# sum.py <-> dispatch.py boundary end to end.
+# frob:tests src/typani/dispatch.py kind="integration"
 def test_match_dispatches_correctly() -> None:
     area = Shape.match(
         Circle(1.0),

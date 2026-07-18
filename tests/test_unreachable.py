@@ -16,6 +16,8 @@ def test_unreachable_error_includes_location() -> None:
     assert "test_unreachable_error_includes_location" in msg
 
 
+# frob:tests src/typani/unit.py kind="integration"
+# frob:tests src/typani/unreachable.py kind="integration"
 def test_unreachable_is_subclass_of_unit() -> None:
     from typani.unit import Unit
 
