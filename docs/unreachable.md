@@ -1,3 +1,4 @@
+<!-- frob:describes src/typani/unreachable.py::Unreachable -->
 # Unreachable
 
 `Unreachable` is a `Unit` subclass that raises `TypeError` the moment it is

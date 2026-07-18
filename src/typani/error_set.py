@@ -49,6 +49,7 @@ class _ErrorSetMeta(EnumMeta):
 
 
 # frob:doc docs/error_set.md#errorset
+# frob:ticket T-0003
 class ErrorSet(Enum, metaclass=_ErrorSetMeta):
     """Zig-inspired typed error enum where each member carries a human-readable description.
 
@@ -85,6 +86,7 @@ class ErrorSet(Enum, metaclass=_ErrorSetMeta):
     Python 3.10 and up without any compatibility shims.
     """
 
+    # frob:doc docs/error_set.md#accessing-descriptions
     @property
     def description(self) -> str:
         """Human-readable description assigned at definition time."""

@@ -25,6 +25,8 @@ class _SumMeta(type):
         return _SumMeta(name, (cls,), {"_variants": variants})  # type: ignore[return-value]
 
 
+# frob:doc docs/sum.md#defining-a-sum-type
+# frob:ticket T-0003
 class Sum(metaclass=_SumMeta):
     """Declared sum type (tagged union) with exhaustive dispatch.
 
@@ -59,6 +61,7 @@ class Sum(metaclass=_SumMeta):
 
     _variants: tuple[type, ...] = ()
 
+    # frob:doc docs/sum.md#exhaustive-dispatch-with-match
     @classmethod
     def match(
         cls,
@@ -84,6 +87,7 @@ class Sum(metaclass=_SumMeta):
                 )
         return dispatch(value, cases, default=default)
 
+    # frob:doc docs/sum.md#membership-check-with-check
     @classmethod
     def check(cls, value: object) -> bool:
         """Return ``True`` if *value* is an instance of any declared variant."""

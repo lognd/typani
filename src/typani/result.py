@@ -21,6 +21,7 @@ class _EMPTY_UNIT(Unit): ...
 
 
 # frob:doc docs/result.md#result
+# frob:ticket T-0003
 class Result(Generic[T, E]):
     """Rust-inspired ``Result<T, E>``: a value that is either ``Ok(T)`` or ``Err(E)``.
 
@@ -55,6 +56,7 @@ class Result(Generic[T, E]):
                 f"There is a `Result` with both an `ok` option (type: `{self._ok.__class__.__name__}`, repr: `{self._ok}`) and an `err` option (type: `{self._err.__class__.__name__}`, repr: `{self._err}`) specified."
             )
 
+    # frob:doc docs/result.md#map-func---resultv-e
     def map(self, func: Callable[[T], V]) -> Result[V, E]:
         """Apply *func* to the success value; pass ``Err`` through unchanged."""
         if self.is_err:
@@ -66,6 +68,7 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return Result[V, E](ok=func(cast(T, self._ok)))
 
+    # frob:doc docs/result.md#map_err-func---resultt-f
     def map_err(self, func: Callable[[E], F]) -> Result[T, F]:
         """Apply *func* to the error value; pass ``Ok`` through unchanged."""
         # casts are safe for the same reasons as above.
@@ -75,6 +78,7 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return Result[T, F](err=func(cast(E, self._err)))
 
+    # frob:doc docs/result.md#and_then-func---resultv-e--f
     def and_then(self, func: Callable[[T], Result[V, F]]) -> Result[V, E | F]:
         """Chain a fallible computation; propagate the first error encountered.
 
@@ -100,6 +104,7 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return Result[V, E | F](ok=cast(V, ok._ok))
 
+    # frob:doc docs/result.md#or_else-func---resultt-f
     def or_else(self, func: Callable[[E], Result[T, F]]) -> Result[T, F]:
         """Recover from an error by calling *func* with the error value.
 
@@ -112,6 +117,7 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return func(cast(E, self.err))
 
+    # frob:doc docs/result.md#inspect-func---resultt-e
     def inspect(self, func: Callable[[T], None]) -> Result[T, E]:
         """Call *func* with the success value for side effects; return ``self`` unchanged."""
         if not self.is_err:
@@ -161,6 +167,7 @@ class Result(Generic[T, E]):
 
     # The unused local is used for type-hinting.
     # noinspection PyUnusedLocal
+    # frob:doc docs/result.md#swap_err-err_type---resultt-f
     def swap_err(self, err: type[F]) -> Result[T, F]:
         """Assert-cast the error type.  Only valid when ``is_ok``; asserts otherwise."""
         assert self.is_ok
@@ -169,6 +176,7 @@ class Result(Generic[T, E]):
 
     # The unused local is used for type-hinting.
     # noinspection PyUnusedLocal
+    # frob:doc docs/result.md#swap_ok-ok_type---resultv-e
     def swap_ok(self, ok: type[V]) -> Result[V, E]:
         """Assert-cast the success type.  Only valid when ``is_err``; asserts otherwise."""
         assert self.is_err

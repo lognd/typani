@@ -1,3 +1,4 @@
+<!-- frob:describes src/typani/sum.py::Sum -->
 # Sum
 
 `Sum[A, B, C]` is a tagged-union base class with exhaustive dispatch.  It replaces

@@ -7,6 +7,7 @@ R = TypeVar("R")
 _MISSING = object()
 
 
+# frob:doc docs/dispatch.md#basic-usage
 def dispatch(
     value: object,
     cases: dict[type[Any], Callable[[Any], R]],

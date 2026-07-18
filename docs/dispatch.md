@@ -1,3 +1,4 @@
+<!-- frob:describes src/typani/dispatch.py::dispatch -->
 # dispatch
 
 `dispatch(value, cases, *, default=...)` matches a value against a dict of

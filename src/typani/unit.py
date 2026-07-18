@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 
+# frob:doc docs/unit.md#why-it-exists
 class UnitMeta(type):
     """Metaclass that forces ``__slots__ = ()`` on every class it creates.
 
@@ -20,6 +21,7 @@ class UnitMeta(type):
         return super().__new__(mcls, name, bases, namespace, **kwargs)
 
 
+# frob:doc docs/unit.md#usage
 class Unit(metaclass=UnitMeta):
     """Zero-slot base class for marker and sentinel types.
 

@@ -6,6 +6,7 @@ from typing import final
 from typani.unit import Unit
 
 
+# frob:doc docs/unreachable.md#usage
 @final
 class Unreachable(Unit):
     """Sentinel that raises ``TypeError`` the moment it is instantiated.

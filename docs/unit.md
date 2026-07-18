@@ -1,3 +1,4 @@
+<!-- frob:describes src/typani/unit.py::Unit -->
 # Unit
 
 `Unit` is a zero-slot base class. Any subclass of `Unit` is guaranteed to carry no
