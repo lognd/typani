@@ -12,3 +12,5 @@ the authoritative API surface.
 - [Unit](unit.md) -- zero-slot marker base class
 - [Unreachable](unreachable.md) -- runtime-checked unreachable sentinel
 - [Singleton](singleton.md) -- singleton decorator and base classes
+- [Design model](design.md) -- `design/typani.strata`, the provable
+  system-design model of typani's own module graph
