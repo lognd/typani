@@ -61,7 +61,6 @@ class Sum(metaclass=_SumMeta):
 
     _variants: tuple[type, ...] = ()
 
-    # frob:doc docs/sum.md#exhaustive-dispatch-with-match
     @classmethod
     def match(
         cls,
@@ -77,6 +76,8 @@ class Sum(metaclass=_SumMeta):
         Raises ``TypeError`` if any variant declared in this sum type is absent
         from *cases* and no *default* is provided.
         """
+        # frob:doc docs/sum.md#exhaustive-dispatch-with-match
+        # frob:ticket T-0004
         if default is _MISSING and cls._variants:
             uncovered = [v for v in cls._variants if v not in cases]
             if uncovered:
@@ -87,8 +88,9 @@ class Sum(metaclass=_SumMeta):
                 )
         return dispatch(value, cases, default=default)
 
-    # frob:doc docs/sum.md#membership-check-with-check
     @classmethod
     def check(cls, value: object) -> bool:
         """Return ``True`` if *value* is an instance of any declared variant."""
+        # frob:doc docs/sum.md#membership-check-with-check
+        # frob:ticket T-0004
         return bool(cls._variants) and isinstance(value, cls._variants)

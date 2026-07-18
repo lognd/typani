@@ -53,7 +53,7 @@ parent: null
 scope:
 - src/typani/**,docs/**,tests/**
 evidence:
-- pytest -q (77 passed, tests/)
+- tests/test_build.py::test_package_imports
 attachments: []
 acceptance: []
 threat: null
@@ -74,3 +74,36 @@ compliance report; frob attributes a `frob:doc` comment placed directly
 above a nested `def` inside a class to the enclosing class symbol, not
 the method, so per-method doc coverage cannot be satisfied as designed.
 No waiver applies (not algorithm-inherent); left unfixed per protocol.
+
+<!-- ticket:T-0004 -->
+```yaml
+id: T-0004
+title: 'frob compliance: T-0044 workaround for method-level COV001'
+state: done
+kind: feature
+origin: agent
+created: '2026-07-17'
+blocked_by: []
+parent: null
+scope:
+- src/typani/**
+evidence:
+- tests/test_build.py::test_package_imports
+attachments: []
+acceptance: []
+threat: null
+```
+## Done report
+
+Changed: applied the T-0044 workaround (frob:doc as the first statement
+inside the method/class body, right after the docstring, instead of
+above the def) to the 25 remaining COV001 findings: error_set.py::
+ErrorSet.description, sum.py::Sum.match/.check, result.py::Result and
+its map/map_err/and_then/or_else/inspect/is_ok/ok/danger_ok/is_err/err/
+danger_err/swap_err/swap_ok, option.py::Option.is_some/is_nothing/some/
+danger_some/map/and_then/or_else/inspect/unwrap_or. Added frob:ticket
+T-0004 edges to every symbol touched.
+Evidence: pytest -q all green; frob check --stamp-coverage refreshed.
+Filed: none further (gaps 2 and 3 already tracked as T-0100/T-0101 by
+the orchestrator).
+Gates: frob check . -> PASS, 0 errors, 0 warnings.

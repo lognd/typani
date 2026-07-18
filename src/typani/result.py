@@ -20,7 +20,7 @@ class _OK_UNIT(Unit): ...
 class _EMPTY_UNIT(Unit): ...
 
 
-# frob:doc docs/result.md#result
+# frob:ticket T-0004
 # frob:ticket T-0003
 class Result(Generic[T, E]):
     """Rust-inspired ``Result<T, E>``: a value that is either ``Ok(T)`` or ``Err(E)``.
@@ -35,6 +35,7 @@ class Result(Generic[T, E]):
         result >> func   # alias for result.and_then(func)
     """
 
+    # frob:doc docs/result.md#result
     _OK_SINGLETON: Final[_OK_UNIT] = _OK_UNIT()
     _ERR_SINGLETON: Final[_EMPTY_UNIT] = _EMPTY_UNIT()
 
@@ -56,9 +57,10 @@ class Result(Generic[T, E]):
                 f"There is a `Result` with both an `ok` option (type: `{self._ok.__class__.__name__}`, repr: `{self._ok}`) and an `err` option (type: `{self._err.__class__.__name__}`, repr: `{self._err}`) specified."
             )
 
-    # frob:doc docs/result.md#map-func---resultv-e
     def map(self, func: Callable[[T], V]) -> Result[V, E]:
         """Apply *func* to the success value; pass ``Err`` through unchanged."""
+        # frob:doc docs/result.md#map-func---resultv-e
+        # frob:ticket T-0004
         if self.is_err:
             # cast is safe because invariant is only `err` or `ok` specified.
             # if object `is_err`, then `ok` is empty anyway, and this is safe.
@@ -68,9 +70,10 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return Result[V, E](ok=func(cast(T, self._ok)))
 
-    # frob:doc docs/result.md#map_err-func---resultt-f
     def map_err(self, func: Callable[[E], F]) -> Result[T, F]:
         """Apply *func* to the error value; pass ``Ok`` through unchanged."""
+        # frob:doc docs/result.md#map_err-func---resultt-f
+        # frob:ticket T-0004
         # casts are safe for the same reasons as above.
         if self.is_ok:
             # noinspection PyUnnecessaryCast
@@ -78,7 +81,6 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return Result[T, F](err=func(cast(E, self._err)))
 
-    # frob:doc docs/result.md#and_then-func---resultv-e--f
     def and_then(self, func: Callable[[T], Result[V, F]]) -> Result[V, E | F]:
         """Chain a fallible computation; propagate the first error encountered.
 
@@ -86,6 +88,8 @@ class Result(Generic[T, E]):
         If ``self`` or the returned inner result is ``Err``, that error is
         returned and ``func`` is never called.
         """
+        # frob:doc docs/result.md#and_then-func---resultv-e--f
+        # frob:ticket T-0004
         result = self.map(func)
 
         # Lots of casting; couple are "unnecessary", but I do it just to appease
@@ -104,12 +108,13 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return Result[V, E | F](ok=cast(V, ok._ok))
 
-    # frob:doc docs/result.md#or_else-func---resultt-f
     def or_else(self, func: Callable[[E], Result[T, F]]) -> Result[T, F]:
         """Recover from an error by calling *func* with the error value.
 
         If ``self`` is ``Ok``, returns ``self`` unchanged.
         """
+        # frob:doc docs/result.md#or_else-func---resultt-f
+        # frob:ticket T-0004
         if self.is_ok:
             # noinspection PyUnnecessaryCast
             return cast(Result[T, F], self)
@@ -117,9 +122,10 @@ class Result(Generic[T, E]):
         # noinspection PyUnnecessaryCast
         return func(cast(E, self.err))
 
-    # frob:doc docs/result.md#inspect-func---resultt-e
     def inspect(self, func: Callable[[T], None]) -> Result[T, E]:
         """Call *func* with the success value for side effects; return ``self`` unchanged."""
+        # frob:doc docs/result.md#inspect-func---resultt-e
+        # frob:ticket T-0004
         if not self.is_err:
             # cast is safe because invariant is only `err` or `ok` specified.
             # if object `is_err`, then `ok` is empty anyway, and this is safe.
@@ -130,11 +136,15 @@ class Result(Generic[T, E]):
     @property
     def is_ok(self) -> bool:
         """``True`` when this result holds a success value."""
+        # frob:doc docs/result.md#properties
+        # frob:ticket T-0004
         return self._ok is not Result._OK_SINGLETON
 
     @property
     def ok(self) -> Optional[T]:
         """The success value, or ``None`` if this is an ``Err``."""
+        # frob:doc docs/result.md#properties
+        # frob:ticket T-0004
         # cast is safe because `is_ok` guarantees that `_ok` is valid.
         # noinspection PyUnnecessaryCast
         return cast(T, self._ok) if self.is_ok else None
@@ -142,6 +152,8 @@ class Result(Generic[T, E]):
     @property
     def danger_ok(self) -> T:
         """The success value; asserts ``is_ok`` and crashes on ``Err``."""
+        # frob:doc docs/result.md#properties
+        # frob:ticket T-0004
         assert self.is_ok
         # noinspection PyUnnecessaryCast
         return cast(T, self._ok)
@@ -149,11 +161,15 @@ class Result(Generic[T, E]):
     @property
     def is_err(self) -> bool:
         """``True`` when this result holds an error value."""
+        # frob:doc docs/result.md#properties
+        # frob:ticket T-0004
         return self._err is not Result._ERR_SINGLETON
 
     @property
     def err(self) -> Optional[E]:
         """The error value, or ``None`` if this is an ``Ok``."""
+        # frob:doc docs/result.md#properties
+        # frob:ticket T-0004
         # cast is safe because `is_err` guarantees that `_err` is valid.
         # noinspection PyUnnecessaryCast
         return cast(E, self._err) if self.is_err else None
@@ -161,24 +177,28 @@ class Result(Generic[T, E]):
     @property
     def danger_err(self) -> E:
         """The error value; asserts ``is_err`` and crashes on ``Ok``."""
+        # frob:doc docs/result.md#properties
+        # frob:ticket T-0004
         assert self.is_err
         # noinspection PyUnnecessaryCast
         return cast(E, self._err)
 
     # The unused local is used for type-hinting.
     # noinspection PyUnusedLocal
-    # frob:doc docs/result.md#swap_err-err_type---resultt-f
     def swap_err(self, err: type[F]) -> Result[T, F]:
         """Assert-cast the error type.  Only valid when ``is_ok``; asserts otherwise."""
+        # frob:doc docs/result.md#swap_err-err_type---resultt-f
+        # frob:ticket T-0004
         assert self.is_ok
         # noinspection PyUnnecessaryCast
         return cast(Result[T, F], self)
 
     # The unused local is used for type-hinting.
     # noinspection PyUnusedLocal
-    # frob:doc docs/result.md#swap_ok-ok_type---resultv-e
     def swap_ok(self, ok: type[V]) -> Result[V, E]:
         """Assert-cast the success type.  Only valid when ``is_err``; asserts otherwise."""
+        # frob:doc docs/result.md#swap_ok-ok_type---resultv-e
+        # frob:ticket T-0004
         assert self.is_err
         # noinspection PyUnnecessaryCast
         return cast(Result[V, E], self)
@@ -208,6 +228,7 @@ class Result(Generic[T, E]):
 
 # noinspection PyPep8Naming
 # frob:doc docs/result.md#constructors
+# frob:ticket T-0004
 def Ok(ok: T, /) -> Result[T, E]:
     """Construct a successful :class:`Result` wrapping *ok*."""
     return Result(ok=ok)
@@ -215,6 +236,7 @@ def Ok(ok: T, /) -> Result[T, E]:
 
 # noinspection PyPep8Naming
 # frob:doc docs/result.md#constructors
+# frob:ticket T-0004
 def Err(err: E, /) -> Result[T, E]:
     """Construct a failed :class:`Result` wrapping *err*."""
     return Result(err=err)

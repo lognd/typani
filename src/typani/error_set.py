@@ -86,10 +86,11 @@ class ErrorSet(Enum, metaclass=_ErrorSetMeta):
     Python 3.10 and up without any compatibility shims.
     """
 
-    # frob:doc docs/error_set.md#accessing-descriptions
     @property
     def description(self) -> str:
         """Human-readable description assigned at definition time."""
+        # frob:doc docs/error_set.md#accessing-descriptions
+        # frob:ticket T-0004
         return str(self.value)
 
     def __str__(self) -> str:
