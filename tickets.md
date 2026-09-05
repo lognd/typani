@@ -116,3 +116,34 @@ Every doc code block is bound with a frob:describes anchor, build and tool input
 - tests: 2 passed (from 2 evidence id(s))
 - gates: 3 error(s), 953 warning(s), 0 waived
 - error-findings: MILE003@tickets.md, REF001@docs/design/registry/capability-via-ratchet.lock.json, unresolved-attribute@examples/error_sets.py
+
+<!-- ticket:T-0016 -->
+```yaml
+id: T-0016
+title: 'docs: describe the committed capability ratchet lock in docs/design.md'
+state: in-progress
+kind: docs
+origin: agent
+created: '2026-09-05'
+priority: low
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- docs/design.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Follow-up to T-0015: the REF001 finding on docs/design/registry/capability-via-ratchet.lock.json is closed by describing the lock in docs/design.md so the file has an in-tree reference.
