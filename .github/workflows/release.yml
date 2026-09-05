@@ -71,7 +71,9 @@ jobs:
           - os: ubuntu-latest
             target: aarch64
             manylinux: auto
-          - os: macos-latest
+          # macos-latest runners are arm64; the Intel wheel must be built
+          # and smoke-tested on an Intel runner or the install cannot match.
+          - os: macos-13
             target: x86_64
           - os: macos-latest
             target: aarch64
@@ -103,7 +105,11 @@ jobs:
           set -e
           uv venv smoke-venv
           uv pip install --python smoke-venv typani_core --no-index --find-links dist
-          python_bin=$(ls smoke-venv/bin/python smoke-venv/Scripts/python.exe 2>/dev/null | head -1)
+          if [ -x smoke-venv/bin/python ]; then
+            python_bin=smoke-venv/bin/python
+          else
+            python_bin=smoke-venv/Scripts/python.exe
+          fi
           "$python_bin" -c "import typani_core; print('typani_core', typani_core.__version__)"
 
       - uses: actions/upload-artifact@v4
