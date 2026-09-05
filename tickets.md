@@ -211,6 +211,10 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_build.py::test_package_imports
+- tests/test_bump_version.py::test_main_set_writes_exact_explicit_version_to_every_coupled_file
+- tests/test_bump_version.py::test_main_part_minor_bumps_minor_across_all_coupled_files
 designated_repro_test: null
 threat: null
 component: null
@@ -219,6 +223,22 @@ anchor_reason: null
 land_commit: null
 ```
 docs/redesign-0.1.md section 2.7. Follow ../frob scaffold templates (src/frob/scaffold/data/shared/python and types/pyo3-library). Replace black+isort with ruff; ty primary checker (mypy oracle only); [dependency-groups] dev; Makefile keeps install/clean/upload/develop only.
+
+## Done report
+
+Modernized the toolchain to the owner's current frob-scaffold preferences: uv with dependency groups, ruff replacing black and isort, ty as the intended primary checker with mypy kept as a 3.10 oracle, py.typed so downstream checkers see typani's types at all, a version-coupled native extra, CI on three OSes with a guarded native leg, a manual-dispatch OIDC release workflow, CHANGELOG.md, and scripts/bump_version.py that bumps every coupled version string in one place.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_build.py::test_package_imports` (pytest node id, verified passing when recorded)
+- `tests/test_bump_version.py::test_main_set_writes_exact_explicit_version_to_every_coupled_file` (pytest node id, verified passing when recorded)
+- `tests/test_bump_version.py::test_main_part_minor_bumps_minor_across_all_coupled_files` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 3 passed (from 3 evidence id(s))
+- gates: unmeasured (no parsable gate-summary from a fresh check)
 <!-- ticket:T-0009 -->
 ```yaml
 id: T-0009
@@ -416,3 +436,38 @@ anchor_reason: null
 land_commit: null
 ```
 NumPy-style banner at docs/assets/typani-banner.svg (ASCII-only). README: banner, badges, install (typani / typani[native]), 60-second tour using match + propagate + notes, backend table, lint, links. docs/*.md updated to the 0.1 surface; design/typani.strata gains nodes for _impl/_exceptions/_propagate/lint.
+
+<!-- ticket:T-0014 -->
+```yaml
+id: T-0014
+title: 'verify 0.1 against frob: ty, ruff, unit subset with the new typani installed
+  in a scratch venv'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: medium
+blocked_by:
+- T-0010
+- T-0012
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- docs/redesign-0.1.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Install the working tree into a scratch venv (never ../frob/.venv), run ty check and a niced pytest -n 2 over frob unit modules that do not spawn subprocesses. Record findings in docs/redesign-0.1.md section 3.
