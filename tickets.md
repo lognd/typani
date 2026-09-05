@@ -505,7 +505,7 @@ Release is now gated behind green CI for the exact commit and publishes with OID
 ```yaml
 id: T-0023
 title: local gate script, drop CI frob job until frob ships, valid release workflow
-state: in-progress
+state: done
 kind: feature
 origin: human
 created: '2026-09-05'
@@ -528,6 +528,9 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_scripts.py::test_check_dry_run_runs_frob_then_both_backends
+- tests/test_scripts.py::test_check_skip_frob_drops_the_first_gate
 designated_repro_test: null
 threat: null
 component: null
@@ -536,3 +539,19 @@ anchor_reason: null
 land_commit: null
 ```
 frob has no stable release, so the CI frob-check job is removed and scripts/check.py (make check) becomes the local gate: frob check plus pytest under both backends. release.yml used hashFiles in a job-level if, which GitHub rejects at parse time; the crate exists, so the guards go and publish needs all three jobs.
+
+## Done report
+
+The owner asked to skip the CI frob job until frob has a release and to make sure the gate runs locally: scripts/check.py is that one command. The release workflow was invalid at parse time because of a job-level hashFiles; the native crate is permanent now so the conditional is simply gone.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_scripts.py::test_check_dry_run_runs_frob_then_both_backends` (pytest node id, verified passing when recorded)
+- `tests/test_scripts.py::test_check_skip_frob_drops_the_first_gate` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 2 passed (from 2 evidence id(s))
+- gates: 12 error(s), 988 warning(s), 0 waived
+- error-findings: OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
