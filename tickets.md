@@ -325,3 +325,40 @@ The pin refusal from T-0033 needs the pin present in every fixture and every exa
 - tests: 2 passed (from 2 evidence id(s))
 - gates: 0 error(s), 1005 warning(s), 2 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0035 -->
+```yaml
+id: T-0035
+title: 'release 0.2.1: trove classifiers and keywords so PyPI reports supported Python
+  versions'
+state: in-progress
+kind: docs
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- pyproject.toml
+- crates/typani-core/pyproject.toml
+- crates/typani-core/Cargo.toml
+- src/typani/_version.py
+- uv.lock
+- CHANGELOG.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+The pyversions badge read 'missing' because neither distribution declared Programming Language classifiers. Metadata-only patch release.
