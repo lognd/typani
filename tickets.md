@@ -345,3 +345,40 @@ Every CI job failed on the first push: a test hardcoded the developer's checkout
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 0 error(s), 942 warning(s), 0 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0020 -->
+```yaml
+id: T-0020
+title: 'Makefile as thin wrapper: move install/develop/clean/build/release logic into
+  platform-agnostic scripts/'
+state: in-progress
+kind: feature
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- Makefile
+- scripts/*.py
+- tests/test_scripts.py
+- README.md
+- docs/index.md
+- frob.toml
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Owner preference: a Makefile may only wrap platform-agnostic scripts under scripts/. Every recipe with shell logic (rm -rf, find, uv sync stamp, maturin develop guard, bump+commit+push+publish) becomes a Python script using pathlib/shutil/subprocess; each make target is one line calling it. The release script must read UV_PUBLISH_TOKEN from the environment (never open .env itself; python-dotenv load_dotenv is acceptable) and must never print it.
