@@ -58,44 +58,6 @@ def _owned_codes_for(func: Callable[..., Any]) -> frozenset[CodeType] | None:
     return _collect_owned_codes(code)
 
 
-def _scope_check(
-    exc: UnwrapError, owned: frozenset[CodeType] | None
-) -> tuple[bool, Any | None]:
-    """Decide whether *exc* is in scope, and return the user-code site frame.
-
-    Returns ``(accepted, site_frame)``. ``site_frame`` is the frame whose
-    ``f_lineno`` names the ``unwrap()`` call site that raised -- the
-    innermost traceback frame itself for the native backend (which raises
-    with no typani frame), or that frame's caller for the pure backend
-    (whose innermost frame is typani's own ``unwrap`` implementation).
-    ``site_frame`` is ``None`` only under the unscoped `__code__`-less
-    fallback, where no lexical site was resolved at all.
-
-    `owned is None` means the callable had no `__code__` at decoration time
-    (the unscoped fallback): every `UnwrapError` is accepted, matching the
-    pre-T-0028 behaviour.
-    """
-    if owned is None:
-        return True, None
-
-    tb = exc.__traceback__
-    if tb is None:  # pragma: no cover - defensive, exceptions always have a tb here
-        return False, None
-    while tb.tb_next is not None:
-        tb = tb.tb_next
-    frame = tb.tb_frame
-
-    if frame.f_code in owned:
-        return True, frame
-
-    if frame.f_code.co_filename in _TYPANI_INTERNAL_FILES:
-        caller = frame.f_back
-        if caller is not None and caller.f_code in owned:
-            return True, caller
-
-    return False, None
-
-
 _DEBUG = logging.DEBUG
 
 
@@ -156,7 +118,11 @@ def propagate(
 
 # frob:doc docs/result.md#propagation
 # frob:ticket T-0028
-# frob:waive AFFECT001 reason="T-0030's only propagate() change is the OPAQUE001 functools.partial fix (internal indirection, no API/behavior change); docs/result.md#propagation is touched this diff, but README.md/docs/error_set.md/docs/redesign-0.1.md are out of T-0030's declared file scope"
+# frob:waive AFFECT001 reason="T-0030's only propagate() change is the OPAQUE001 \
+# functools.partial fix (internal indirection, no API/behavior change); \
+# docs/result.md#propagation is touched this diff, but \
+# README.md/docs/error_set.md/docs/redesign-0.1.md are out of T-0030's declared file \
+# scope"
 def propagate(
     func: F | None = None,
     *,
