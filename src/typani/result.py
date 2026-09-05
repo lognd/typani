@@ -110,6 +110,11 @@ class Result(Generic[T_co, E_co]):
         """Notes attached via :meth:`note`, oldest first; always ``()`` on ``Ok``."""
         return ()
 
+    @property
+    def trace(self) -> tuple[str, ...]:
+        """Error-return trace from :meth:`traced`, innermost first; ``()`` on ``Ok``."""
+        return ()
+
     def is_ok_and(self, pred: Callable[[T_co], bool]) -> bool:
         """``True`` when this is ``Ok`` and *pred* holds for its value."""
         raise NotImplementedError
@@ -118,8 +123,14 @@ class Result(Generic[T_co, E_co]):
         """``True`` when this is ``Err`` and *pred* holds for its error."""
         raise NotImplementedError
 
-    def unwrap(self) -> T_co:
-        """Return the success value; raise ``UnwrapError(self)`` on ``Err``."""
+    def unwrap(self, *, err: F | None = None, note: str | None = None) -> T_co:
+        """Return the success value; raise ``UnwrapError(self)`` on ``Err``.
+
+        With *err* given, an ``Err`` propagates via ``self.wrap_err(err)``
+        instead of ``self`` -- i.e. ``r.unwrap(err=E, note=N)`` is exactly
+        ``r.wrap_err(E).note(N).unwrap()``, just without the intermediate
+        name. *note* alone (no *err*) appends to the existing ``Err``.
+        """
         raise NotImplementedError
 
     def unwrap_err(self) -> E_co:
@@ -154,7 +165,7 @@ class Result(Generic[T_co, E_co]):
         # frob:doc docs/result.md#map_errfn---resultt-f
         if self.is_ok:
             return cast("Result[T_co, F]", self)
-        return Err(fn(self.danger_err))._with_notes(self.notes)
+        return Err(fn(self.danger_err))._with_meta(self.notes, self.trace)
 
     def and_then(self, fn: Callable[[T_co], "Result[V, F]"]) -> "Result[V, E_co | F]":
         """Chain a fallible computation; propagate the first error encountered."""
@@ -195,7 +206,36 @@ class Result(Generic[T_co, E_co]):
         # frob:doc docs/result.md#notemsg---resultt-e
         if self.is_ok:
             return self
-        return Err(self.danger_err)._with_notes(self.notes + (msg,))
+        return Err(self.danger_err)._with_meta(self.notes + (msg,), self.trace)
+
+    def traced(self, site: str) -> "Result[T_co, E_co]":
+        """Append *site* to the error-return trace, innermost first; ``Ok`` no-ops.
+
+        Called by :func:`typani.propagate` on every hop so a chain of
+        `@propagate` functions leaves a breadcrumb trail of *where*, not a
+        full traceback -- see docs/result.md#return-trace. Costs nothing on
+        the happy path: it only ever runs from an already-caught
+        ``UnwrapError``.
+        """
+        # frob:doc docs/result.md#return-trace
+        # frob:ticket T-0028
+        if self.is_ok:
+            return self
+        return Err(self.danger_err)._with_meta(self.notes, self.trace + (site,))
+
+    def wrap_err(self, err: F) -> "Result[T_co, F]":
+        """Replace an ``Err``'s payload with *err*, noting the original; ``Ok`` no-ops.
+
+        Unlike :meth:`map_err`, *err* is a plain replacement value, not a
+        function of the old error -- the old error is not lost, it is
+        appended to `.notes` as ``f"caused by {inner!r}"`` so it stays
+        inspectable. Existing notes are preserved ahead of that new one.
+        """
+        # frob:doc docs/result.md#wrap_errerr---resultt-f
+        if self.is_ok:
+            return cast("Result[T_co, F]", self)
+        cause_note = f"caused by {self.danger_err!r}"
+        return Err(err)._with_meta(self.notes + (cause_note,), self.trace)
 
     def swap_err(self, err: type[F]) -> "Result[T_co, F]":
         """Assert-cast the error type. Only valid when ``is_ok``; else raises."""
@@ -237,9 +277,15 @@ class Result(Generic[T_co, E_co]):
         raise NotImplementedError
 
 
-def _rebuild_err(error: Any, notes: tuple[str, ...]) -> "Err[Any, Any]":
-    """Reconstruct an ``Err`` with its notes for :func:`pickle.loads`."""
-    return Err(error)._with_notes(notes)
+def _rebuild_err(
+    error: Any, notes: tuple[str, ...], trace: tuple[str, ...] = ()
+) -> "Err[Any, Any]":
+    """Reconstruct an ``Err`` with its notes/trace for :func:`pickle.loads`.
+
+    *trace* defaults to ``()`` so pickles written before T-0028's trace
+    field (2-arg calls) still unpickle cleanly.
+    """
+    return Err(error)._with_meta(notes, trace)
 
 
 # frob:doc docs/result.md#constructors
@@ -298,8 +344,10 @@ class Ok(Result[T_co, E_co]):
         """Always ``False``: ``Ok`` has no error to test."""
         return False
 
-    def unwrap(self) -> T_co:
-        """Return the wrapped value."""
+    def unwrap(self, *, err: F | None = None, note: str | None = None) -> T_co:
+        """Return the wrapped value; *err*/*note* are ignored on ``Ok``."""
+        if err is None and note is None:
+            return self._value
         return self._value
 
     def unwrap_err(self) -> E_co:
@@ -382,17 +430,25 @@ class Ok(Result[T_co, E_co]):
 class Err(Result[T_co, E_co]):
     """The failure variant of :class:`Result`, wrapping an error of type ``E``."""
 
-    __slots__ = ("_error", "_notes")
+    __slots__ = ("_error", "_notes", "_trace")
     __match_args__ = ("error",)
 
     def __init__(self, error: E_co, /) -> None:
-        """Wrap *error* as a failed result with no notes attached."""
+        """Wrap *error* as a failed result with no notes/trace attached."""
         self._error = error
         self._notes: tuple[str, ...] = ()
+        self._trace: tuple[str, ...] = ()
 
-    def _with_notes(self, notes: tuple[str, ...]) -> "Err[T_co, E_co]":
-        """Return ``self`` with *notes* installed; used by note()/map_err()/pickling."""
+    def _with_meta(
+        self, notes: tuple[str, ...], trace: tuple[str, ...] = ()
+    ) -> "Err[T_co, E_co]":
+        """Return ``self`` with *notes*/*trace* installed.
+
+        Used by note()/map_err()/wrap_err()/traced()/pickling -- the single
+        home for mutating a freshly-constructed ``Err``'s metadata.
+        """
         self._notes = notes
+        self._trace = trace
         return self
 
     @property
@@ -404,6 +460,11 @@ class Err(Result[T_co, E_co]):
     def notes(self) -> tuple[str, ...]:
         """Notes attached via :meth:`Result.note`, oldest first."""
         return self._notes
+
+    @property
+    def trace(self) -> tuple[str, ...]:
+        """Error-return trace attached via :meth:`traced`, innermost first."""
+        return self._trace
 
     @property
     def is_ok(self) -> bool:
@@ -443,9 +504,19 @@ class Err(Result[T_co, E_co]):
         """``True`` when *pred* holds for the wrapped error."""
         return bool(pred(self._error))
 
-    def unwrap(self) -> T_co:
-        """Always raises ``UnwrapError``: ``Err`` carries no success value."""
-        raise UnwrapError(self)
+    def unwrap(self, *, err: F | None = None, note: str | None = None) -> T_co:
+        """Always raises ``UnwrapError``: ``Err`` carries no success value.
+
+        With *err* given the raised error's ``.container`` is
+        ``self.wrap_err(err)`` (optionally further ``.note(note)``-d);
+        with only *note* given it is ``self.note(note)``.
+        """
+        if err is None and note is None:
+            raise UnwrapError(self)
+        container: "Result[T_co, Any]" = self.wrap_err(err) if err is not None else self
+        if note is not None:
+            container = container.note(note)
+        raise UnwrapError(container)
 
     def unwrap_err(self) -> E_co:
         """Return the wrapped error."""
@@ -505,34 +576,42 @@ class Err(Result[T_co, E_co]):
         return hash((_ERR_MARKER, self._error))
 
     def __repr__(self) -> str:
-        """``Err(<repr>)``, or with notes ``Err(<repr>; note: a; note: b)``."""
+        """``Err(<repr>)``, with notes/trace appended when present.
+
+        Notes render as ``"; note: a; note: b"``; a non-empty trace renders
+        as ``"; via inner <- outer"`` (innermost site first), after notes.
+        """
         base = f"Err({self._error!r})"
-        return self._render_notes(base)
+        return self._render_meta(base)
 
     def __str__(self) -> str:
-        """``Err(<str>)``, or with notes ``Err(<str>; note: a; note: b)``."""
+        """``Err(<str>)``, with notes/trace appended when present (see ``__repr__``)."""
         base = f"Err({self._error!s})"
-        return self._render_notes(base)
+        return self._render_meta(base)
 
-    def _render_notes(self, base: str) -> str:
-        """Append ``"; note: ..."`` segments for each attached note."""
-        if not self._notes:
-            return base
+    def _render_meta(self, base: str) -> str:
+        """Append ``"; note: ..."`` and ``"; via a <- b"`` segments when present."""
         suffix = "".join(f"; note: {note}" for note in self._notes)
+        if self._trace:
+            suffix += "; via " + " <- ".join(self._trace)
+        if not suffix:
+            return base
         return base[:-1] + suffix + ")"
 
     def __reduce__(
         self,
     ) -> tuple[
         Callable[..., "Err[T_co, E_co]"],
-        tuple[E_co, tuple[str, ...]],
+        tuple[E_co, tuple[str, ...], tuple[str, ...]],
     ]:
-        """Pickle support: reconstruct via the module rebuild helper, notes kept."""
-        return (_rebuild_err, (self._error, self._notes))
+        """Pickle support: rebuild via the module helper, keeping notes/trace."""
+        return (_rebuild_err, (self._error, self._notes, self._trace))
 
     def __deepcopy__(self, memo: dict[int, object]) -> "Err[T_co, E_co]":
-        """Return a new ``Err`` with a deep-copied error, preserving notes."""
-        return Err(_copy.deepcopy(self._error, memo))._with_notes(self._notes)
+        """Return a new ``Err`` with a deep-copied error, preserving notes/trace."""
+        return Err(_copy.deepcopy(self._error, memo))._with_meta(
+            self._notes, self._trace
+        )
 
 
 if not TYPE_CHECKING:

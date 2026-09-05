@@ -138,9 +138,19 @@ pub(crate) fn make_err(
     error: Bound<'_, PyAny>,
     notes: Py<PyTuple>,
 ) -> PyResult<Py<PyAny>> {
+    make_err_traced(py, error, notes, PyTuple::empty(py).unbind())
+}
+
+pub(crate) fn make_err_traced(
+    py: Python<'_>,
+    error: Bound<'_, PyAny>,
+    notes: Py<PyTuple>,
+    trace: Py<PyTuple>,
+) -> PyResult<Py<PyAny>> {
     let init = PyClassInitializer::from(ResultBase).add_subclass(ErrClass {
         error: error.unbind(),
         notes,
+        trace,
     });
     Py::new(py, init).map(|p| p.into_any())
 }
@@ -209,6 +219,11 @@ impl OkClass {
         PyTuple::empty(py).unbind()
     }
 
+    #[getter]
+    fn trace(&self, py: Python<'_>) -> Py<PyTuple> {
+        PyTuple::empty(py).unbind()
+    }
+
     fn is_ok_and(&self, py: Python<'_>, pred: Bound<'_, PyAny>) -> PyResult<bool> {
         pred.call1((self.value.bind(py),))?.is_truthy()
     }
@@ -217,7 +232,17 @@ impl OkClass {
         false
     }
 
-    fn unwrap(&self, py: Python<'_>) -> Py<PyAny> {
+    /// BIND: unwrap(self, *, err=None, note=None) -> T -- T-0028 keyword sugar.
+    /// *err*/*note* are always ignored on `Ok`; the bare path (both None)
+    /// takes the same single-field-read branch as before.
+    #[pyo3(signature = (*, err=None, note=None))]
+    fn unwrap(
+        &self,
+        py: Python<'_>,
+        err: Option<Bound<'_, PyAny>>,
+        note: Option<Bound<'_, PyAny>>,
+    ) -> Py<PyAny> {
+        let _ = (err, note);
         self.value.clone_ref(py)
     }
 
@@ -286,6 +311,16 @@ impl OkClass {
     }
 
     fn note(self_: &Bound<'_, Self>, _msg: &str) -> Py<PyAny> {
+        self_.clone().into_any().unbind()
+    }
+
+    /// BIND: wrap_err(self, err) -> Result[T, F] -- no-op on Ok, T-0028.
+    fn wrap_err(self_: &Bound<'_, Self>, _err: Bound<'_, PyAny>) -> Py<PyAny> {
+        self_.clone().into_any().unbind()
+    }
+
+    /// BIND: traced(self, site: str) -> Result[T, E] -- no-op on Ok, T-0028.
+    fn traced(self_: &Bound<'_, Self>, _site: &str) -> Py<PyAny> {
         self_.clone().into_any().unbind()
     }
 
@@ -378,6 +413,9 @@ impl OkClass {
 struct ErrClass {
     error: Py<PyAny>,
     notes: Py<PyTuple>,
+    /// Error-return trace (T-0028): propagation sites, innermost first.
+    /// Not part of equality/hash; see `traced()`.
+    trace: Py<PyTuple>,
 }
 
 #[pymethods]
@@ -387,6 +425,7 @@ impl ErrClass {
         PyClassInitializer::from(ResultBase).add_subclass(ErrClass {
             error: error.unbind(),
             notes: PyTuple::empty(py).unbind(),
+            trace: PyTuple::empty(py).unbind(),
         })
     }
 
@@ -403,6 +442,11 @@ impl ErrClass {
     #[getter]
     fn notes(&self, py: Python<'_>) -> Py<PyTuple> {
         self.notes.clone_ref(py)
+    }
+
+    #[getter]
+    fn trace(&self, py: Python<'_>) -> Py<PyTuple> {
+        self.trace.clone_ref(py)
     }
 
     #[getter]
@@ -443,8 +487,29 @@ impl ErrClass {
         pred.call1((self.error.bind(py),))?.is_truthy()
     }
 
-    fn unwrap(self_: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
-        Err(unwrap_error(self_.py(), self_.clone().into_any(), None))
+    /// BIND: unwrap(self, *, err=None, note=None) -> T -- T-0028 keyword sugar.
+    /// With `err` given, the raised error's `.container` is
+    /// `self.wrap_err(err)` (further `.note(note)`-d if given); with only
+    /// `note`, it is `self.note(note)`. Bare (both None) is the original
+    /// fast path: raise immediately, nothing else touched.
+    #[pyo3(signature = (*, err=None, note=None))]
+    fn unwrap(
+        self_: &Bound<'_, Self>,
+        err: Option<Bound<'_, PyAny>>,
+        note: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
+        let py = self_.py();
+        if err.is_none() && note.is_none() {
+            return Err(unwrap_error(py, self_.clone().into_any(), None));
+        }
+        let mut container: Bound<'_, PyAny> = match err {
+            Some(new_err) => self_.call_method1(intern!(py, "wrap_err"), (new_err,))?,
+            None => self_.clone().into_any(),
+        };
+        if let Some(msg) = note {
+            container = container.call_method1(intern!(py, "note"), (msg,))?;
+        }
+        Err(unwrap_error(py, container, None))
     }
 
     fn unwrap_err(&self, py: Python<'_>) -> Py<PyAny> {
@@ -477,7 +542,12 @@ impl ErrClass {
 
     fn map_err(&self, py: Python<'_>, fn_: Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
         let mapped = fn_.call1((self.error.bind(py),))?;
-        make_err(py, mapped, self.notes.clone_ref(py))
+        make_err_traced(
+            py,
+            mapped,
+            self.notes.clone_ref(py),
+            self.trace.clone_ref(py),
+        )
     }
 
     fn and_then(self_: &Bound<'_, Self>, _fn: Bound<'_, PyAny>) -> Py<PyAny> {
@@ -515,18 +585,65 @@ impl ErrClass {
         let mut notes: Vec<Bound<'_, PyAny>> = self.notes.bind(py).iter().collect();
         notes.push(msg.into_pyobject(py)?.into_any());
         let new_notes = PyTuple::new(py, notes)?.unbind();
-        make_err(py, self.error.bind(py).clone(), new_notes)
+        make_err_traced(
+            py,
+            self.error.bind(py).clone(),
+            new_notes,
+            self.trace.clone_ref(py),
+        )
     }
 
-    /// BIND: _with_notes(self, notes: tuple[str, ...]) -> Err
+    /// BIND: wrap_err(self, err) -> Result[T, F] -- T-0028
+    ///
+    /// WHY: unlike map_err, *err* is a plain replacement value, not a
+    /// function of the old error; the old error is preserved as a new
+    /// trailing note (`"caused by {inner!r}"`) instead of being lost.
+    fn wrap_err(&self, py: Python<'_>, err: Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
+        let cause = self.error.bind(py).repr()?;
+        let cause_note = format!("caused by {cause}");
+        let mut notes: Vec<Bound<'_, PyAny>> = self.notes.bind(py).iter().collect();
+        notes.push(cause_note.into_pyobject(py)?.into_any());
+        let new_notes = PyTuple::new(py, notes)?.unbind();
+        make_err_traced(py, err, new_notes, self.trace.clone_ref(py))
+    }
+
+    /// BIND: traced(self, site: str) -> Result[T, E] -- T-0028
+    ///
+    /// WHY: appends *site* to the error-return trace, innermost first;
+    /// called once per hop by `typani.propagate`. Preserves notes.
+    fn traced(&self, py: Python<'_>, site: &str) -> PyResult<Py<PyAny>> {
+        let mut trace: Vec<Bound<'_, PyAny>> = self.trace.bind(py).iter().collect();
+        trace.push(site.into_pyobject(py)?.into_any());
+        let new_trace = PyTuple::new(py, trace)?.unbind();
+        make_err_traced(
+            py,
+            self.error.bind(py).clone(),
+            self.notes.clone_ref(py),
+            new_trace,
+        )
+    }
+
+    /// BIND: _with_meta(self, notes: tuple[str, ...], trace: tuple[str, ...] = ()) -> Err
     ///
     /// WHY: `typani.result._rebuild_err` (pure Python, shared by both
-    /// backends' `__reduce__`) calls `Err(error)._with_notes(notes)` to
-    /// restore notes during unpickling; the pure-Python `Err` mutates and
-    /// returns `self`, but this class is frozen, so it returns a fresh
-    /// instance with the same error and the given notes instead.
-    fn _with_notes(&self, py: Python<'_>, notes: Bound<'_, PyTuple>) -> PyResult<Py<PyAny>> {
-        make_err(py, self.error.bind(py).clone(), notes.unbind())
+    /// backends' `__reduce__`) calls `Err(error)._with_meta(notes, trace)`
+    /// to restore notes/trace during unpickling; the pure-Python `Err`
+    /// mutates and returns `self`, but this class is frozen, so it returns
+    /// a fresh instance with the same error and the given notes/trace.
+    #[pyo3(signature = (notes, trace=None))]
+    fn _with_meta(
+        &self,
+        py: Python<'_>,
+        notes: Bound<'_, PyTuple>,
+        trace: Option<Bound<'_, PyTuple>>,
+    ) -> PyResult<Py<PyAny>> {
+        let trace = trace.unwrap_or_else(|| PyTuple::empty(py));
+        make_err_traced(
+            py,
+            self.error.bind(py).clone(),
+            notes.unbind(),
+            trace.unbind(),
+        )
     }
 
     fn swap_err(self_: &Bound<'_, Self>, _err: Bound<'_, PyAny>) -> PyResult<Py<PyAny>> {
@@ -598,7 +715,11 @@ impl ErrClass {
         // is not the hot path this ticket optimizes for (see
         // docs/native.md's benchmark table).
         let rebuild = py.import("typani.result")?.getattr("_rebuild_err")?;
-        let args = (self.error.bind(py), self.notes.bind(py));
+        let args = (
+            self.error.bind(py),
+            self.notes.bind(py),
+            self.trace.bind(py),
+        );
         (rebuild, args).into_py_any(py)
     }
 
@@ -610,7 +731,12 @@ impl ErrClass {
         let copy_mod = py.import("copy")?;
         let deep = copy_mod.getattr(intern!(py, "deepcopy"))?;
         let copied = deep.call1((self.error.bind(py), memo))?;
-        make_err(py, copied, self.notes.clone_ref(py))
+        make_err_traced(
+            py,
+            copied,
+            self.notes.clone_ref(py),
+            self.trace.clone_ref(py),
+        )
     }
 }
 
@@ -619,7 +745,8 @@ impl ErrClass {
     /// `Err._render_notes` in the pure-Python implementation).
     fn render_notes(&self, py: Python<'_>, base: String) -> String {
         let notes = self.notes.bind(py);
-        if notes.is_empty() {
+        let trace = self.trace.bind(py);
+        if notes.is_empty() && trace.is_empty() {
             return base;
         }
         let mut out = base;
@@ -627,6 +754,14 @@ impl ErrClass {
         for note in notes.iter() {
             out.push_str("; note: ");
             out.push_str(&note.str().map(|s| s.to_string()).unwrap_or_default());
+        }
+        if !trace.is_empty() {
+            out.push_str("; via ");
+            let sites: Vec<String> = trace
+                .iter()
+                .map(|site| site.str().map(|s| s.to_string()).unwrap_or_default())
+                .collect();
+            out.push_str(&sites.join(" <- "));
         }
         out.push(')');
         out

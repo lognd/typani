@@ -72,8 +72,14 @@ class Option(Generic[T_co]):
         """The inner value; raises ``UnwrapError`` on ``Nothing``."""
         raise NotImplementedError
 
-    def unwrap(self) -> T_co:
-        """Return the value; raise ``UnwrapError(self)`` on ``Nothing``."""
+    def unwrap(self, *, err: E | None = None, note: str | None = None) -> T_co:
+        """Return the value; raise ``UnwrapError(self)`` on ``Nothing``.
+
+        With *err* given, a ``Nothing`` propagates as ``Err(err)`` (i.e.
+        ``self.ok_or(err)``, optionally ``.note(note)``-d, then unwrapped)
+        instead of ``self``. *note* without *err* is a ``TypeError``: a
+        ``Nothing`` carries no notes of its own to attach one to.
+        """
         raise NotImplementedError
 
     def unwrap_or(self, default: U) -> T_co | U:
@@ -201,8 +207,10 @@ class Some(Option[T_co]):
         """The wrapped value."""
         return self._value
 
-    def unwrap(self) -> T_co:
-        """Return the wrapped value."""
+    def unwrap(self, *, err: E | None = None, note: str | None = None) -> T_co:
+        """Return the wrapped value; *err*/*note* are ignored on ``Some``."""
+        if err is None and note is None:
+            return self._value
         return self._value
 
     def unwrap_or(self, default: U) -> T_co | U:
@@ -296,9 +304,20 @@ class Nothing(Option[T_co]):
         """Always raises ``UnwrapError``: ``Nothing`` carries no value."""
         raise UnwrapError(self)
 
-    def unwrap(self) -> Any:
-        """Always raises ``UnwrapError``: ``Nothing`` carries no value."""
-        raise UnwrapError(self)
+    def unwrap(self, *, err: E | None = None, note: str | None = None) -> Any:
+        """Always raises ``UnwrapError``: ``Nothing`` carries no value.
+
+        With *err* given, propagates as ``Err(err)`` (see :meth:`ok_or`)
+        instead of ``self``. *note* without *err* raises ``TypeError``.
+        """
+        if err is None:
+            if note is not None:
+                raise TypeError("note requires err on Option.unwrap")
+            raise UnwrapError(self)
+        mapped = self.ok_or(err)
+        if note is not None:
+            mapped = mapped.note(note)
+        raise UnwrapError(mapped)
 
     def unwrap_or(self, default: U) -> U:
         """Return *default*."""

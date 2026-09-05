@@ -168,7 +168,7 @@ set: they exist precisely to be called for their side effect with the
 return value discarded (Rust's `inspect` idiom), so `Ok(1).inspect(print)`
 as a bare statement is correct, not a bug.
 
-### TYP004 -- propagation boilerplate (info)
+### TYP004 -- propagation boilerplate (info, two shapes)
 
 ```python
 # flagged (informational)
@@ -185,6 +185,28 @@ Flags the exact `if X.is_err: return Err(X.danger_err)` shape (and its
 `docs/redesign-0.1.md` section 1.3 for the Rust-`?`-style propagation
 this boilerplate stands in for. Informational only: the boilerplate is
 correct, just longer than it needs to be.
+
+A second, related shape is also flagged, with a different message: `if
+X.is_err: return Err(<mapped>)` where `<mapped>` is a single call to
+`Err` whose argument is *not* `X.danger_err` (e.g. `Err(SomeOtherError())`
+or `Err(f(X.danger_err))`, wrapping the error before returning it):
+
+```python
+# flagged (informational): mapped error
+if loaded.is_err:
+    return Err(CloseError.QueueUnavailable)
+
+# suggested
+queue = loaded.unwrap(err=CloseError.QueueUnavailable)
+```
+
+`X.unwrap(err=NewErr)` is `X.wrap_err(NewErr).unwrap()` in one call: the old
+error is not lost, it survives as a note (see docs/result.md#wrap_err). When
+the new error must be *computed from* the old one rather than a fixed
+replacement, use `X.map_err(fn).unwrap()` instead -- the finding's message
+says so.
+
+See docs/result.md#propagation for both idioms.
 
 ### TYP005 -- assert stripped under `-O` (info)
 
@@ -205,6 +227,67 @@ silently in that mode. Flags an `assert X.is_ok`/`X.is_err`/`X.is_some`
 immediately followed, in the same statement list, by any statement that
 somewhere contains `X.danger_ok`/`X.danger_err`/`X.danger_some` on the
 same subject `X`.
+
+### TYP006 -- catch/catching with no named exception types (info)
+
+```python
+# flagged (informational)
+result = Result.catch(lambda: json.loads(text))
+
+@catching(on_error=lambda e: IoError.Failed)
+def read_file(path: Path) -> str:
+    return path.read_text()
+
+# good
+result = Result.catch(lambda: json.loads(text), json.JSONDecodeError, on_error=...)
+
+@catching(OSError, on_error=lambda e: IoError.Failed)
+def read_file(path: Path) -> str:
+    return path.read_text()
+```
+
+Flags a call to `Result.catch(fn, ...)` with no positional exception-type
+argument beyond `fn`, or a call/decorator use of `catching(...)` with no
+positional exception-type argument at all -- in both cases the default
+`(Exception,)` is what actually gets caught, silently converting
+*every* exception the callable can raise (including genuine programmer
+bugs) into an `Err`. `on_error=...` alone does not silence this: naming
+the exception types is what narrows the boundary.
+
+### TYP007 -- broad except inside a Result/Option function (info)
+
+```python
+# flagged (informational)
+def load(path: Path) -> Result[Config, ConfigError]:
+    try:
+        return Ok(parse(path))
+    except Exception as exc:
+        return Err(ConfigError.Invalid(str(exc)))
+
+# good
+def load(path: Path) -> Result[Config, ConfigError]:
+    try:
+        return Ok(parse(path))
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        return Err(ConfigError.Invalid(str(exc)))
+```
+
+Flags a bare `except:`, `except Exception:`, or `except BaseException:`
+(including one inside a tuple, e.g. `except (OSError, Exception):`) that
+is lexically inside a function or method whose return annotation
+(unparsed, forward-reference strings included) is `Result[...]`,
+`Option[...]`, or a bare `Result`/`Option`. Inside a function that already
+communicates failure through its return type, a catch-all `except`
+clause silently reclassifies an unrelated programmer bug (a `TypeError`
+from a bad call, a `KeyError` from a typo) as a legitimate domain `Err`,
+defeating the whole point of returning `Result`/`Option` in the first
+place. `except (OSError, ValueError)`-style named tuples are never
+flagged, and a catch-all `except Exception` outside any Result/Option
+function (e.g. inside a `-> None` function) is never flagged either --
+this rule is about the specific mismatch between a typed failure channel
+and an untyped one silently absorbing everything into it. `Result.catch`
+is the narrower, explicit alternative for the exception-to-`Result`
+boundary (see docs/result.md#catch).
 
 ## Suppression
 
@@ -412,6 +495,16 @@ Drop `--no-info` to also print (but not fail on) TYP004/TYP005 hits; add
 `--json` and pipe to a report step if the CI system wants structured
 output instead.
 
+### Field results as an exception-boundary worklist
+
+Run with `--json`, `TYP007`'s findings are a ready-made worklist for a
+consumer auditing its own exception boundaries: each finding's `symref`
+names the exact function to narrow, and its `message` already states
+which broad except clause is the problem. A consumer can filter the
+JSON envelope's `findings` array to `rule == "TYP007"` and drive a
+migration ticket queue straight from that, without re-deriving the list
+by hand.
+
 ## Field results
 
 `typani.lint` was run against `frob` (version `0.530.0`, 649 `*.py` files
@@ -439,6 +532,28 @@ times (that shape is rarer in practice). TYP002 fired 0 times after the
 evidence-based tightening described above; the earlier, untightened
 version had fired 16 times, all 16 confirmed false positives (see
 TYP002's rule section).
+
+### T-0028 field results: TYP004 mapped shape, TYP006, TYP007
+
+Re-run against the same `frob` `src/` tree (649 `*.py` files) after T-0028
+added the mapped-error TYP004 shape and the TYP006/TYP007 rules:
+
+- TYP004 fired 676 times total: 649 pass-through (unchanged from the
+  earlier measurement above) plus 27 mapped-error hits (`if X.is_err:
+  return Err(<mapped>)`).
+- TYP006 fired 0 times: every `Result.catch`/`catching` use found already
+  named its exception types.
+- TYP007 fired 17 times, all `except Exception` inside a `Result`-returning
+  function -- well under the ~93-site estimate a manual review of the
+  same tree had made; the manual estimate likely counted broad excepts
+  reachable from a `Result`-returning function indirectly (through a
+  helper) rather than lexically inside one, which this rule deliberately
+  does not follow (see TYP007 above). Five example symrefs:
+  - `frob/fleet/__init__.py::load_manifest`
+  - `frob/fuzz/_arbitrary.py::_field_strategy`
+  - `frob/fuzz/_arbitrary.py::_derived_strategy`
+  - `frob/gates/_coverage.py::load_coverage`
+  - `frob/gates/_ratchet.py::_write_ratchet_lock`
 
 ## frob recipe
 

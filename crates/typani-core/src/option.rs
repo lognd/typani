@@ -160,7 +160,16 @@ impl Some_ {
         self.value.clone_ref(py)
     }
 
-    fn unwrap(&self, py: Python<'_>) -> Py<PyAny> {
+    /// BIND: unwrap(self, *, err=None, note=None) -> T -- T-0028 keyword sugar,
+    /// always ignored on `Some`.
+    #[pyo3(signature = (*, err=None, note=None))]
+    fn unwrap(
+        &self,
+        py: Python<'_>,
+        err: Option<Bound<'_, PyAny>>,
+        note: Option<Bound<'_, PyAny>>,
+    ) -> Py<PyAny> {
+        let _ = (err, note);
         self.value.clone_ref(py)
     }
 
@@ -328,8 +337,31 @@ impl Nothing {
         Err(unwrap_error(self_.py(), self_.clone().into_any(), None))
     }
 
-    fn unwrap(self_: &Bound<'_, Self>) -> PyResult<Py<PyAny>> {
-        Err(unwrap_error(self_.py(), self_.clone().into_any(), None))
+    /// BIND: unwrap(self, *, err=None, note=None) -> T -- T-0028 keyword sugar.
+    /// With `err` given, propagates as `Err(err)` (via `ok_or`, then
+    /// `.note(note)` if given). `note` without `err` raises `TypeError`:
+    /// `Nothing` has no notes of its own to attach one to.
+    #[pyo3(signature = (*, err=None, note=None))]
+    fn unwrap(
+        self_: &Bound<'_, Self>,
+        err: Option<Bound<'_, PyAny>>,
+        note: Option<Bound<'_, PyAny>>,
+    ) -> PyResult<Py<PyAny>> {
+        let py = self_.py();
+        let new_err = match err {
+            None => {
+                if note.is_some() {
+                    return Err(PyTypeError::new_err("note requires err on Option.unwrap"));
+                }
+                return Err(unwrap_error(py, self_.clone().into_any(), None));
+            }
+            Some(e) => e,
+        };
+        let mut mapped = self_.call_method1(intern!(py, "ok_or"), (new_err,))?;
+        if let Some(msg) = note {
+            mapped = mapped.call_method1(intern!(py, "note"), (msg,))?;
+        }
+        Err(unwrap_error(py, mapped, None))
     }
 
     fn unwrap_or(&self, default: Bound<'_, PyAny>) -> Py<PyAny> {

@@ -5,6 +5,48 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `@propagate` is now lexically scoped (T-0028): only an `UnwrapError`
+  raised by code lexically inside the decorated function -- its own body,
+  or a nested `def`/`lambda`/comprehension in it -- is caught. An
+  `UnwrapError` raised by a separate, undecorated helper now escapes
+  loudly instead of being silently attributed to the wrong caller.
+- `@propagate(on_error=fn)`: an optional hook called as `fn(func,
+  container)` immediately before the container is returned; every catch
+  is logged at `DEBUG` via the `"typani.propagate"` logger (T-0028).
+- `Result.wrap_err(err)`: replace an `Err`'s payload with a fixed *err*
+  value, preserving the original error as a new trailing note
+  (`"caused by {inner!r}"`) instead of discarding it; `Ok` is a no-op
+  (T-0028).
+- `unwrap(*, err=None, note=None)` on both `Result` and `Option`: keyword
+  sugar for the mapped-error propagation idiom --
+  `r.unwrap(err=E, note=N) == r.wrap_err(E).note(N).unwrap()` on `Result`;
+  on `Option`, `err` makes a `Nothing` propagate as `Err(err)`. The bare
+  call (no keywords) is unchanged and costs nothing extra (T-0028).
+- Error-return trace: `Err.trace` (`tuple[str, ...]`, innermost first),
+  populated by `@propagate` calling `.traced(f"{func.__qualname__}:
+  {lineno}")` on every hop through a propagation chain; renders after
+  notes as `"; via a <- b"`. Lists propagation sites, not stack frames,
+  and costs nothing on the `Ok` happy path. Not part of `==`/`hash`;
+  preserved by `note`/`wrap_err`/`map_err`/`unwrap(err=...)`/pickling/
+  `deepcopy` (T-0028).
+- `python -m typani.lint`: `TYP004` now also flags the mapped-error
+  propagation shape (`if X.is_err: return Err(<mapped>)`), suggesting
+  `X.unwrap(err=NewErr)`; `TYP006` flags a `Result.catch`/`catching`
+  exception boundary with no named exception types; `TYP007` flags a
+  bare/`Exception`/`BaseException` `except` clause inside a
+  `Result`/`Option`-returning function (T-0028).
+
+### Changed
+
+- `@propagate`'s returned container is equal to (`==`) the original
+  `UnwrapError.container`, but -- because every catch now calls
+  `.traced(...)` -- no longer guaranteed to be the identical (`is`)
+  object; compare by value (T-0028).
+
 ## [0.1.0] - unreleased
 
 ### Added

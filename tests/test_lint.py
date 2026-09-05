@@ -170,13 +170,60 @@ def test_typ004_result_and_option_boilerplate() -> None:
 
 
 # frob:tests src/typani/lint/__init__.py::check_source
-def test_typ004_negative_different_subject_not_flagged() -> None:
+def test_typ004_different_subject_is_mapped_shape() -> None:
+    """`Err(other.danger_err)` isn't the pass-through shape, but is mapped."""
     source = textwrap.dedent(
         """
         def f(r, other):
             if r.is_err:
                 return Err(other.danger_err)
             return r.danger_ok
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP004"]
+    assert "mapped error" in findings[0].message
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ004_mapped_error_positive() -> None:
+    source = textwrap.dedent(
+        """
+        def f(loaded):
+            if loaded.is_err:
+                return Err(CloseError.QueueUnavailable)
+            return loaded.danger_ok
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP004"]
+    assert "mapped error" in findings[0].message
+    assert "loaded.unwrap(err=CloseError.QueueUnavailable)" in findings[0].message
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ004_mapped_error_wraps_danger_err() -> None:
+    """`Err(f(X.danger_err))` is accepted as the mapped shape too."""
+    source = textwrap.dedent(
+        """
+        def f(loaded):
+            if loaded.is_err:
+                return Err(wrap(loaded.danger_err))
+            return loaded.danger_ok
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP004"]
+    assert "mapped error" in findings[0].message
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ004_negative_mapped_shape_outside_if_is_err() -> None:
+    """A bare `return Err(...)` with no `if X.is_err` guard is not TYP004."""
+    source = textwrap.dedent(
+        """
+        def f():
+            return Err(SomeError.Bad)
         """
     )
     findings = check_source(source)
@@ -211,6 +258,144 @@ def test_typ005_negative_no_danger_followup() -> None:
     )
     findings = check_source(source)
     assert "TYP005" not in _rules(findings)
+
+
+# --- TYP006: catch/catching with no named exception types --------------------
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ006_result_catch_no_exceptions() -> None:
+    source = textwrap.dedent(
+        """
+        def f():
+            return Result.catch(lambda: json.loads(text))
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP006"]
+    assert findings[0].severity == "info"
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ006_catching_decorator_no_exceptions() -> None:
+    source = textwrap.dedent(
+        """
+        @catching(on_error=lambda e: IoError.Failed)
+        def read_file(path):
+            return path.read_text()
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP006"]
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ006_catching_bare_call_no_exceptions() -> None:
+    source = textwrap.dedent(
+        """
+        def f():
+            wrapped = catching(on_error=handle)(inner)
+            return wrapped
+        """
+    )
+    findings = check_source(source)
+    assert "TYP006" in _rules(findings)
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ006_negative_named_exceptions() -> None:
+    source = textwrap.dedent(
+        """
+        def f():
+            return Result.catch(lambda: json.loads(text), OSError, on_error=handle)
+
+        @catching(OSError, on_error=handle)
+        def read_file(path):
+            return path.read_text()
+        """
+    )
+    findings = check_source(source)
+    assert "TYP006" not in _rules(findings)
+
+
+# --- TYP007: broad except inside a Result/Option function ---------------------
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ007_bare_except_in_result_function() -> None:
+    source = textwrap.dedent(
+        """
+        def f() -> Result[int, str]:
+            try:
+                return Ok(1)
+            except:
+                return Err("boom")
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP007"]
+    assert findings[0].severity == "info"
+    assert "f" in findings[0].symref
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ007_except_exception_in_option_function() -> None:
+    source = textwrap.dedent(
+        """
+        def f() -> Option[int]:
+            try:
+                return Some(1)
+            except Exception:
+                return Nothing()
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP007"]
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ007_except_base_exception_in_tuple() -> None:
+    source = textwrap.dedent(
+        """
+        def f() -> Result[int, str]:
+            try:
+                return Ok(1)
+            except (OSError, BaseException):
+                return Err("boom")
+        """
+    )
+    findings = check_source(source)
+    assert _rules(findings) == ["TYP007"]
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ007_negative_named_exceptions() -> None:
+    source = textwrap.dedent(
+        """
+        def f() -> Result[int, str]:
+            try:
+                return Ok(1)
+            except (OSError, ValueError):
+                return Err("boom")
+        """
+    )
+    findings = check_source(source)
+    assert "TYP007" not in _rules(findings)
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_typ007_negative_non_result_function() -> None:
+    source = textwrap.dedent(
+        """
+        def f() -> None:
+            try:
+                do_work()
+            except Exception:
+                pass
+        """
+    )
+    findings = check_source(source)
+    assert "TYP007" not in _rules(findings)
 
 
 # --- suppression / skip-file / syntax errors ---------------------------------

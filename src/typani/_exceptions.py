@@ -28,7 +28,10 @@ class UnwrapError(AssertionError):
         """Store the offending container and an optional caller-supplied prefix."""
         self.container = container
         self._message = message
-        super().__init__(str(self))
+        # args carries the constructor inputs (pickling rebuilds from them);
+        # the message itself is rendered lazily in __str__ so the failure
+        # path never pays for a repr nobody reads.
+        super().__init__(container, message)
 
     def __str__(self) -> str:
         """Render as e.g. ``unwrap() on Err(...)``, prefixed by *message* when given."""

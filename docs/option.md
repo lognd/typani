@@ -54,6 +54,20 @@ compares by payload, and both variants are picklable, hashable, and safe across
 Return the value; raise `UnwrapError(self)` on `Nothing`. Works with `@propagate`
 exactly like `Result.unwrap()` -- see [the Result docs](result.md#propagation).
 
+`unwrap(*, err=None, note=None) -> T` (T-0028): on `Some`, *err*/*note* are
+always ignored. On `Nothing`, giving *err* propagates as `Err(err)` instead
+of `Nothing()` -- exactly `self.ok_or(err)` (see [`ok_or`](#ok_orerr---resultt-e)),
+further `.note(note)`-d when *note* is also given, then unwrapped:
+
+```python
+Nothing().unwrap(err=TicketError.NotFound)              # raises; container == Err(TicketError.NotFound)
+Nothing().unwrap(err=TicketError.NotFound, note="ctx")   # ... container.notes == ("ctx",)
+```
+
+*note* without *err* is a `TypeError` (`"note requires err on Option.unwrap"`):
+a bare `Nothing()` carries no notes of its own to attach one to, unlike
+`Result`'s `Err`.
+
 ### `unwrap_or(default) -> T`
 
 Return the value if present, otherwise return *default*.

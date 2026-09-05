@@ -109,7 +109,10 @@ context to an `Err` without touching its payload; `unwrap()` inside a
 `@propagate` function returns the offending `Result` from the enclosing
 function on failure instead of raising, giving Rust `?`/Zig `try`-style
 early return; `match Ok(v)`/`case Err(e)` narrows the variant; `Option`
-covers the "value or nothing" half of the same idea. See
+covers the "value or nothing" half of the same idea. `@propagate` adds one
+Python call frame per invocation (~110ns measured, see
+[docs/result.md#cost](docs/result.md#cost)) and pays for itself on
+functions with two or more propagation sites, not one. See
 [docs/result.md](docs/result.md) and [docs/option.md](docs/option.md) for
 the full API.
 

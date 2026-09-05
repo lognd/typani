@@ -1,4 +1,4 @@
-"""AST visitor implementing the TYP001-TYP005 misuse rules for typani.lint."""
+"""AST visitor implementing the TYP001-TYP007 misuse rules for typani.lint."""
 
 from __future__ import annotations
 
@@ -21,6 +21,8 @@ RULES: dict[str, str] = {
     "TYP003": "a Result/Option value constructed or chained but never inspected",
     "TYP004": "manual propagation boilerplate better written with unwrap()/@propagate",
     "TYP005": "assert on a typani invariant, stripped under python -O",
+    "TYP006": "catch/catching boundary with no named exception types",
+    "TYP007": "broad except inside a Result/Option-returning function",
 }
 
 # Properties on Result/Option that are misused when called with zero args.
@@ -73,6 +75,9 @@ _COMBINATOR_ATTRS = frozenset(
 
 _DANGER_ATTRS = frozenset({"danger_ok", "danger_err", "danger_some"})
 _ASSERT_TEST_ATTRS = frozenset({"is_ok", "is_err", "is_some"})
+
+# except-clause names broad enough to swallow a programmer bug (TYP007).
+_BROAD_EXCEPT_NAMES = frozenset({"Exception", "BaseException"})
 
 _SUPPRESS_RE = re.compile(r"#.*typani:\s*ignore(?:\[([A-Za-z0-9_,\s]+)\])?")
 _SKIP_FILE_RE = re.compile(r"typani:\s*skip-file")
@@ -198,6 +203,7 @@ class MisuseVisitor(ast.NodeVisitor):
         self.findings: list["Finding"] = []
         self._scope_stack: list[dict[str, bool]] = []
         self._qual_stack: list[str] = []
+        self._return_ok_stack: list[bool] = []
         registry = _FunctionRegistry()
         self._module_funcs: dict[str, bool] = {}
         self._method_funcs: dict[str, bool] = {}
@@ -213,10 +219,12 @@ class MisuseVisitor(ast.NodeVisitor):
     # -- scope tracking for TYP003c local-variable binding ------------------
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Push a fresh local-binding scope and qualname segment, then pop both."""
+        """Push a fresh local-binding scope, qualname segment, and return-kind flag."""
         self._scope_stack.append({})
         self._qual_stack.append(node.name)
+        self._return_ok_stack.append(_is_result_or_option_annotation(node.returns))
         self.generic_visit(node)
+        self._return_ok_stack.pop()
         self._qual_stack.pop()
         self._scope_stack.pop()
 
@@ -224,7 +232,9 @@ class MisuseVisitor(ast.NodeVisitor):
         """Async twin of visit_FunctionDef: same scope push/pop discipline."""
         self._scope_stack.append({})
         self._qual_stack.append(node.name)
+        self._return_ok_stack.append(_is_result_or_option_annotation(node.returns))
         self.generic_visit(node)
+        self._return_ok_stack.pop()
         self._qual_stack.pop()
         self._scope_stack.pop()
 
@@ -274,7 +284,7 @@ class MisuseVisitor(ast.NodeVisitor):
     # -- TYP001: property called as a method ---------------------------------
 
     def visit_Call(self, node: ast.Call) -> None:
-        """Dispatch TYP001 (property-as-method) and TYP003 (discarded chain) checks."""
+        """Dispatch TYP001 (property-as-method), TYP003, and TYP006 checks."""
         if (
             isinstance(node.func, ast.Attribute)
             and node.func.attr in _PROPERTY_NAMES
@@ -287,7 +297,39 @@ class MisuseVisitor(ast.NodeVisitor):
                 f"'{node.func.attr}' is a property, not a method: drop the parentheses",
                 "error",
             )
+        self._check_catch_boundary(node)
         self.generic_visit(node)
+
+    # -- TYP006: catch/catching with no named exception types -----------------
+
+    def _check_catch_boundary(self, node: ast.Call) -> None:
+        """Flag `Result.catch(fn)`/`catching()` calls that name no exception types."""
+        is_result_catch = (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr == "catch"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "Result"
+        )
+        is_catching = isinstance(node.func, ast.Name) and node.func.id == "catching"
+        if not (is_result_catch or is_catching):
+            return
+
+        # `Result.catch(fn, *exceptions, on_error=...)`: the callable is the
+        # first positional arg, so any exception types are extra positionals.
+        # `catching(*exceptions, on_error=...)` has no callable argument at
+        # all: any positional arg is an exception type.
+        min_args = 1 if is_result_catch else 0
+        if len(node.args) > min_args:
+            return
+
+        callee = "Result.catch" if is_result_catch else "catching"
+        self._add(
+            "TYP006",
+            node,
+            f"'{callee}' with no named exception types catches Exception by "
+            "default; name the exceptions this boundary converts",
+            "info",
+        )
 
     # -- TYP002: truthiness of a payload attribute ---------------------------
 
@@ -414,20 +456,35 @@ class MisuseVisitor(ast.NodeVisitor):
 
         if test.attr == "is_err" and isinstance(ret.value, ast.Call):
             call = ret.value
-            if (
-                isinstance(call.func, ast.Name)
-                and call.func.id == "Err"
-                and len(call.args) == 1
+            if not (isinstance(call.func, ast.Name) and call.func.id == "Err"):
+                return
+            is_passthrough = (
+                len(call.args) == 1
                 and not call.keywords
                 and isinstance(call.args[0], ast.Attribute)
                 and call.args[0].attr == "danger_err"
                 and ast.dump(call.args[0].value) == ast.dump(subject)
-            ):
+            )
+            if is_passthrough:
                 self._add(
                     "TYP004",
                     node,
                     "propagation boilerplate: use 'X.unwrap()' inside an "
                     "@propagate function",
+                    "info",
+                )
+            elif len(call.args) == 1 and not call.keywords:
+                # `return Err(<anything other than X.danger_err>)`, including
+                # `Err(f(X.danger_err))` -- a mapped-error propagation shape.
+                subject_expr = ast.unparse(subject)
+                new_err_expr = ast.unparse(call.args[0])
+                self._add(
+                    "TYP004",
+                    node,
+                    "propagation with a mapped error: use "
+                    f"'{subject_expr}.unwrap(err={new_err_expr})' inside an "
+                    "@propagate function (map_err when the new error is "
+                    "computed from the old one)",
                     "info",
                 )
             return
@@ -447,6 +504,35 @@ class MisuseVisitor(ast.NodeVisitor):
                     "@propagate function",
                     "info",
                 )
+
+    # -- TYP007: broad except inside a Result/Option function ------------------
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        """Flag a bare/Exception/BaseException handler inside a Result/Option fn."""
+        if self._return_ok_stack and self._return_ok_stack[-1]:
+            kind = self._broad_except_kind(node.type)
+            if kind is not None:
+                self._add(
+                    "TYP007",
+                    node,
+                    f"'{kind}' inside a Result-returning function: a "
+                    "programmer bug becomes an Err; name the exceptions or "
+                    "use Result.catch",
+                    "info",
+                )
+        self.generic_visit(node)
+
+    def _broad_except_kind(self, exc_type: ast.expr | None) -> str | None:
+        """Return a human label for a too-broad except type, or None if it is fine."""
+        if exc_type is None:
+            return "bare except"
+        if isinstance(exc_type, ast.Name) and exc_type.id in _BROAD_EXCEPT_NAMES:
+            return f"except {exc_type.id}"
+        if isinstance(exc_type, ast.Tuple):
+            for elt in exc_type.elts:
+                if isinstance(elt, ast.Name) and elt.id in _BROAD_EXCEPT_NAMES:
+                    return f"except {elt.id}"
+        return None
 
     # -- TYP005: assert stripped under -O -------------------------------------
 

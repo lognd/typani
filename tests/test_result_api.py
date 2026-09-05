@@ -307,3 +307,206 @@ def test_deepcopy_new_payload() -> None:
     dup_e = copy.deepcopy(e)
     assert dup_e == e
     assert dup_e.notes == ("ctx",)
+
+
+# --- wrap_err (T-0028) -------------------------------------------------------
+
+
+# frob:tests src/typani/result.py::Result.wrap_err
+def test_wrap_err_ok_passthrough() -> None:
+    o = Ok(1)
+    assert o.wrap_err("NEW") is o
+
+
+# frob:tests src/typani/result.py::Result.wrap_err
+def test_wrap_err_err_mapping() -> None:
+    w = Err("bad").wrap_err("NEW")
+    assert w == Err("NEW")
+    assert w.notes == ("caused by 'bad'",)
+
+
+def test_wrap_err_preserves_existing_notes_before_cause() -> None:
+    w = Err("bad").note("ctx").wrap_err("NEW")
+    assert w.notes == ("ctx", "caused by 'bad'")
+
+
+def test_wrap_err_repr_shape() -> None:
+    w = Err("bad").wrap_err("NEW")
+    assert repr(w) == "Err('NEW'; note: caused by 'bad')"
+
+
+def test_wrap_err_under_propagate() -> None:
+    from typani import propagate
+
+    @propagate
+    def fn() -> "Result[int, str]":
+        Err("bad").wrap_err("NEW").unwrap()
+        raise AssertionError("unreachable")
+
+    result = fn()
+    assert result == Err("NEW")
+    assert result.notes == ("caused by 'bad'",)
+
+
+def test_wrap_err_pickle_round_trip_keeps_note() -> None:
+    w = Err("bad").wrap_err("NEW")
+    restored = pickle.loads(pickle.dumps(w))
+    assert restored == w
+    assert restored.notes == w.notes
+
+
+# --- unwrap(err=, note=) keyword sugar (T-0028) -------------------------------
+
+
+# frob:tests src/typani/result.py::Err.unwrap
+def test_unwrap_ok_ignores_keywords() -> None:
+    assert Ok(1).unwrap(err="NEW") == 1
+    assert Ok(1).unwrap(note="n") == 1
+
+
+# frob:tests src/typani/result.py::Err.unwrap
+def test_unwrap_err_with_err_mapped_container() -> None:
+    with pytest.raises(UnwrapError) as excinfo:
+        Err("bad").unwrap(err="NEW")
+    container = excinfo.value.container
+    assert isinstance(container, Err)
+    assert container == Err("NEW")
+    assert container.notes == ("caused by 'bad'",)
+
+
+def test_unwrap_err_with_err_and_note() -> None:
+    with pytest.raises(UnwrapError) as excinfo:
+        Err("bad").unwrap(err="NEW", note="ctx")
+    container = excinfo.value.container
+    assert isinstance(container, Err)
+    assert container == Err("NEW")
+    assert container.notes == ("caused by 'bad'", "ctx")
+
+
+def test_unwrap_err_equivalence_to_wrap_err_note_unwrap() -> None:
+    """`r.unwrap(err=E, note=N) == r.wrap_err(E).note(N).unwrap()` (raises equally)."""
+    r = Err("bad")
+    with pytest.raises(UnwrapError) as via_kwargs:
+        r.unwrap(err="NEW", note="ctx")
+    with pytest.raises(UnwrapError) as via_chain:
+        r.wrap_err("NEW").note("ctx").unwrap()
+    kwargs_container = via_kwargs.value.container
+    chain_container = via_chain.value.container
+    assert isinstance(kwargs_container, Err)
+    assert isinstance(chain_container, Err)
+    assert kwargs_container == chain_container
+    assert kwargs_container.notes == chain_container.notes
+
+
+def test_unwrap_note_only_appends_to_existing_err() -> None:
+    with pytest.raises(UnwrapError) as excinfo:
+        Err("bad").unwrap(note="ctx")
+    container = excinfo.value.container
+    assert isinstance(container, Err)
+    assert container == Err("bad")
+    assert container.notes == ("ctx",)
+
+
+def test_unwrap_bare_unaffected() -> None:
+    with pytest.raises(UnwrapError) as excinfo:
+        Err("bad").unwrap()
+    container = excinfo.value.container
+    assert isinstance(container, Err)
+    assert container == Err("bad")
+    assert container.notes == ()
+
+
+# --- error-return trace (T-0028) ----------------------------------------------
+
+
+# frob:tests src/typani/result.py::Err.traced
+def test_traced_ok_is_noop() -> None:
+    o = Ok(1)
+    assert o.traced("site") is o
+
+
+def test_traced_appends_innermost_first() -> None:
+    e = Err("bad").traced("a").traced("b").traced("c")
+    assert e.trace == ("a", "b", "c")
+
+
+def test_traced_repr_shape() -> None:
+    e = Err("bad").traced("inner").traced("outer")
+    assert repr(e) == "Err('bad'; via inner <- outer)"
+
+
+def test_traced_with_notes_repr_order() -> None:
+    e = Err("bad").note("n1").note("n2").traced("inner").traced("outer")
+    assert repr(e) == "Err('bad'; note: n1; note: n2; via inner <- outer)"
+
+
+def test_trace_survives_note_wrap_err_map_err() -> None:
+    e = Err("bad").traced("site1")
+    assert e.note("n").trace == ("site1",)
+    assert e.wrap_err("NEW").trace == ("site1",)
+    assert e.map_err(str.upper).trace == ("site1",)
+
+
+def test_trace_survives_unwrap_err_kwarg() -> None:
+    e = Err("bad").traced("site1")
+    with pytest.raises(UnwrapError) as excinfo:
+        e.unwrap(err="NEW")
+    container = excinfo.value.container
+    assert isinstance(container, Err)
+    assert container.trace == ("site1",)
+
+
+def test_trace_three_hop_propagate_order() -> None:
+    from typani import propagate
+
+    @propagate
+    def inner() -> "Result[int, str]":
+        Err("bad").unwrap()
+        raise AssertionError("unreachable")
+
+    @propagate
+    def middle() -> "Result[int, str]":
+        inner().unwrap()
+        raise AssertionError("unreachable")
+
+    @propagate
+    def outer() -> "Result[int, str]":
+        middle().unwrap()
+        raise AssertionError("unreachable")
+
+    result = outer()
+    assert result == Err("bad")
+    assert len(result.trace) == 3
+    assert result.trace[0].startswith(
+        "test_trace_three_hop_propagate_order.<locals>.inner:"
+    )
+    assert result.trace[1].startswith(
+        "test_trace_three_hop_propagate_order.<locals>.middle:"
+    )
+    assert result.trace[2].startswith(
+        "test_trace_three_hop_propagate_order.<locals>.outer:"
+    )
+
+
+def test_trace_pickle_round_trip() -> None:
+    e = Err("bad").traced("a").traced("b")
+    restored = pickle.loads(pickle.dumps(e))
+    assert restored == e
+    assert restored.trace == e.trace
+
+
+def test_trace_ignored_by_equality_and_hash() -> None:
+    plain = Err("bad")
+    traced = Err("bad").traced("site")
+    assert plain == traced
+    assert hash(plain) == hash(traced)
+
+
+def test_trace_backward_compatible_pickle_two_arg_rebuild() -> None:
+    """Older pickles used the 2-arg `_rebuild_err(error, notes)` form."""
+    from typani.result import _rebuild_err
+
+    rebuilt = _rebuild_err("bad", ("ctx",))
+    assert rebuilt == Err("bad")
+    assert rebuilt.notes == ("ctx",)
+    assert rebuilt.trace == ()
