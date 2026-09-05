@@ -172,7 +172,7 @@ The capability ratchet lock that T-0015 introduced had no in-tree reference (REF
 id: T-0017
 title: 'fix: ty diagnostics frob''s check stage reports on examples/error_sets.py
   and option.py'
-state: in-progress
+state: done
 kind: bug
 origin: agent
 created: '2026-09-05'
@@ -191,6 +191,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_option_api.py::test_from_optional
 designated_repro_test: null
 threat: null
 component: null
@@ -199,3 +201,18 @@ anchor_reason: null
 land_commit: null
 ```
 frob's ty stage (multi-platform run) reported an unresolved-attribute on the match-captured err in examples/error_sets.py and two unused ty:ignore directives in option.py that a plain uv run ty check did not surface.
+
+## Done report
+
+frob's ty stage runs per platform and surfaced three diagnostics the plain project ty run did not: the example now prints str(err) (which already includes the description) and two unused ty:ignore directives are gone.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_option_api.py::test_from_optional` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 0 error(s), 942 warning(s), 0 waived
+- error-findings: none (measured, zero errors)
