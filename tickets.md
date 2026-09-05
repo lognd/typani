@@ -456,7 +456,7 @@ The mypy oracle failed on every pure-only CI runner because the optional native 
 id: T-0022
 title: 'CI: release gated on green CI, rust-cache workspace path, Windows subprocess
   env in -O test'
-state: in-progress
+state: done
 kind: bug
 origin: human
 created: '2026-09-05'
@@ -475,6 +475,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_result_api.py::test_python_o_safety
 designated_repro_test: null
 threat: null
 component: null
@@ -483,3 +485,18 @@ anchor_reason: null
 land_commit: null
 ```
 release.yml gains a verify-ci job that refuses to publish unless the CI workflow concluded success for the exact commit; publish is OIDC-only now that trusted publishers exist for both distributions. ci.yml points rust-cache at crates/typani-core. test_python_o_safety replaced the environment instead of extending it, which cannot start Python on Windows 3.10.
+
+## Done report
+
+Release is now gated behind green CI for the exact commit and publishes with OIDC only; rust-cache knows where the crate lives; the -O safety test no longer wipes the environment it spawns Python into, which was the Windows 3.10 failure.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_result_api.py::test_python_o_safety` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 11 error(s), 979 warning(s), 0 waived
+- error-findings: OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
