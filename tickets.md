@@ -390,7 +390,7 @@ docs/redesign-0.1.md section 2.5. abi3-py310 frozen pyclasses; __class_getitem__
 ```yaml
 id: T-0011
 title: 'typani.lint: stdlib-ast misuse checker TYP001-TYP005'
-state: queued
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
