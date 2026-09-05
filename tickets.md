@@ -713,3 +713,35 @@ The smoke step's interpreter lookup and the Intel macOS runner were the last two
 - tests: 0 passed (from 0 evidence id(s))
 - gates: 13 error(s), 984 warning(s), 0 waived
 - error-findings: DOC006@CODE_OF_CONDUCT.md, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
+
+<!-- ticket:T-0027 -->
+```yaml
+id: T-0027
+title: 'release.yml: drop the Intel macOS wheel leg'
+state: in-progress
+kind: docs
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- .github/workflows/release.yml
+- docs/native.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+The macos-13 Intel runner pool stalls a release for hours; the Intel wheel is dropped and docs/native.md lists the platforms that ship wheels.
