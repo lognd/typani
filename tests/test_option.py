@@ -53,7 +53,7 @@ def test_or_else_on_nothing() -> None:
 
 def test_or_else_on_some_is_noop() -> None:
     result: Option[int] = Some(7)
-    assert result.or_else(lambda: Some(0)).some == 7  # ty: ignore[invalid-argument-type]
+    assert result.or_else(lambda: Some(0)).some == 7
 
 
 def test_inspect_called_on_some() -> None:
