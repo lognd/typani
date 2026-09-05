@@ -63,6 +63,9 @@ select = ["E", "F", "W", "I", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["E501"]
+# Lint fixtures are deliberately misused typani code (the checker's own
+# test data), never real imports.
+"tests/fixtures/**" = ["E501", "F401", "F811", "F821", "F841"]
 
 [tool.ty.src]
 include = ["src", "tests"]
