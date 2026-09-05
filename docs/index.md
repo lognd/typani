@@ -15,3 +15,5 @@ the authoritative API surface.
 - [Design model](design.md) -- `design/typani.strata`, the provable
   system-design model of typani's own module graph
 - [typani.lint](lint.md) -- stdlib-only misuse checker, `python -m typani.lint`
+- [Native core](native.md) -- `typani-core`, the PyO3/maturin accelerator
+  for Result/Option, with pure-Python fallback

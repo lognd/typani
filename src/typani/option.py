@@ -352,3 +352,17 @@ class Nothing(Option[T_co]):
     def __deepcopy__(self, memo: dict[int, object]) -> "Nothing[T_co]":
         """Return the shared instance: ``Nothing`` carries no payload to copy."""
         return self
+
+
+if not TYPE_CHECKING:
+    # T-0010: bind the public names to the native PyO3 classes when the
+    # backend selection (typani._impl.native_active) picks native; see the
+    # matching block at the bottom of typani/result.py for the rationale.
+    from typani._impl import native_active as _native_active
+
+    if _native_active():
+        import typani_core as _typani_core
+
+        Option = _typani_core.Option
+        Some = _typani_core.Some
+        Nothing = _typani_core.Nothing

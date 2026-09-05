@@ -1,0 +1,29 @@
+[package]
+name = "typani-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+license = "MIT"
+description = "Native Result/Option kernels for typani (T-0010): PyO3/abi3 extension"
+
+[lib]
+name = "typani_core"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# extension-module is NOT a default feature: cargo test/clippy must link
+# against libpython, which the extension-module ABI flag deliberately
+# suppresses. maturin passes the feature at wheel-build time; plain
+# `cargo build`/`cargo test`/`cargo clippy` leave it off. Same posture as
+# frob-core and strata-core.
+pyo3 = { version = "0.29", features = ["abi3-py310"] }
+
+[features]
+extension-module = ["pyo3/extension-module"]
+
+[lints.clippy]
+all = "warn"
+
+[lints.rust]
+unsafe_code = "forbid"

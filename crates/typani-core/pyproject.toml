@@ -1,13 +1,15 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.7,<2"]
+build-backend = "maturin"
 
 [project]
 name = "typani-core"
 version = "0.1.0"
-description = "Placeholder for the typani-core native extension (T-0010)."
+description = "Native Result/Option kernels for typani (PyO3, abi3-py310)"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 
-[tool.setuptools]
-packages = ["typani_core"]
+[tool.maturin]
+module-name = "typani_core"
+features = ["pyo3/extension-module"]
+include = ["typani_core.pyi", "py.typed"]

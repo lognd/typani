@@ -1,5 +1,7 @@
 from typani._exceptions import UnwrapError
+from typani._impl import backend_name, native_active
 from typani._propagate import catching, propagate
+from typani._version import __version__
 from typani.dispatch import dispatch
 from typani.error_set import ErrorSet, merge
 from typani.option import Nothing, Option, Some
@@ -16,10 +18,10 @@ from typani.sum import Sum
 from typani.unit import Unit
 from typani.unreachable import Unreachable
 
-__version__ = "0.1.0"
-
 __all__ = [
     "__version__",
+    "backend_name",
+    "native_active",
     "dispatch",
     "Sum",
     "ErrorSet",

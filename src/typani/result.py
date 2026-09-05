@@ -527,3 +527,24 @@ class Err(Result[T_co, E_co]):
     def __deepcopy__(self, memo: dict[int, object]) -> "Err[T_co, E_co]":
         """Return a new ``Err`` with a deep-copied error, preserving notes."""
         return Err(_copy.deepcopy(self._error, memo))._with_notes(self._notes)
+
+
+if not TYPE_CHECKING:
+    # T-0010: bind the public names to the native PyO3 classes when the
+    # backend selection (typani._impl.native_active) picks native, so
+    # everything that does `from typani.result import Ok` at runtime gets
+    # the accelerated class. Type checkers never see this branch, so they
+    # keep resolving against the pure-Python definitions above regardless
+    # of which backend actually runs.
+    from typani._impl import native_active as _native_active
+
+    if _native_active():
+        import typani_core as _typani_core
+
+        Result = _typani_core.Result
+        Ok = _typani_core.Ok
+        Err = _typani_core.Err
+        # _rebuild_err stays the pure-Python function above: the native
+        # Err.__reduce__ calls it by name via `typani.result._rebuild_err`
+        # (see crates/typani-core/src/result.rs), so both backends' Err
+        # pickles reconstruct through this single entry point.

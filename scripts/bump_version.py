@@ -1,8 +1,8 @@
-"""Bump typani's version across pyproject.toml, the native crate, and __init__.py.
+"""Bump typani's version across pyproject.toml, the native crate, and _version.py.
 
 Keeps pyproject.toml's `version`, crates/typani-core/pyproject.toml and
 Cargo.toml (when the native crate exists, T-0010), and
-src/typani/__init__.py's `__version__` literal all in lockstep -- the
+src/typani/_version.py's `__version__` literal all in lockstep -- the
 version-coupling doctrine documented in pyproject.toml's `native` extra
 comment. Prints only the resulting version to stdout (CLI output);
 everything else goes through `logging`.
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parent.parent
 PYPROJECT = ROOT / "pyproject.toml"
-INIT_PY = ROOT / "src" / "typani" / "__init__.py"
+INIT_PY = ROOT / "src" / "typani" / "_version.py"
 NATIVE_PYPROJECT = ROOT / "crates" / "typani-core" / "pyproject.toml"
 NATIVE_CARGO_TOML = ROOT / "crates" / "typani-core" / "Cargo.toml"
 
@@ -66,7 +66,7 @@ def _write_pyproject_version(new: str) -> None:
 
 
 def _write_init_version(new: str) -> None:
-    """Rewrite src/typani/__init__.py's __version__ literal in place."""
+    """Rewrite src/typani/_version.py's __version__ literal in place."""
     if not INIT_PY.exists():
         logger.warning("%s does not exist, skipping", INIT_PY)
         return
