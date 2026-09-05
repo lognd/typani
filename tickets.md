@@ -294,3 +294,37 @@ frob's consumer review asked for two things that turn an empty result from ambig
 - tests: 2 passed (from 2 evidence id(s))
 - gates: 1 error(s), 942 warning(s), 0 waived
 - error-findings: PRE001@tickets/T-0018
+
+<!-- ticket:T-0019 -->
+```yaml
+id: T-0019
+title: 'CI red on first push: hardcoded test cwd, ty unresolved typani_core on pure
+  runners, frob-check advisory, token publish'
+state: in-progress
+kind: bug
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- tests/test_result_api.py
+- pyproject.toml
+- .github/workflows/*.yml
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+First CI run after the 0.1 push failed in every job: test_python_o_safety used the developer's absolute checkout path as cwd; ty on pure-only runners cannot resolve the optional typani_core import in _impl.py; frob-check cannot install frob (unpublished) and is advisory until it can; release.yml publishes with the PYPI_API_TOKEN secret.
