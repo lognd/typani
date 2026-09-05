@@ -154,7 +154,7 @@ Estate rollout from frob T-0736 (scaffold conformance, landed 2026-07-22): run f
 ```yaml
 id: T-0007
 title: 'typani 0.1: audit-driven redesign, native core, modernization'
-state: in-progress
+state: done
 kind: feature
 origin: agent
 created: '2026-09-05'
