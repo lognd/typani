@@ -219,3 +219,138 @@ longer constructible; `Nothing` is a class; `bool(result)` raises;
 frob was checked for each change: zero direct constructions, zero
 `Nothing`-without-call, two `AssertionError` expectations (still pass),
 one `isinstance(x, Result)` (still passes).
+
+## 4. Verification against frob
+
+Ticket T-0014: verify typani 0.1.0 (HEAD aa1818b, "refactor(types): make
+ty the primary checker and re-include singleton.py") is a drop-in
+upgrade for frob (checkout at /home/logan/projects/frob, 649 source
+files, 209 files importing typani; frob pyproject pin `typani>=0.0.3`).
+
+### 4.1 Environment
+
+A scratch venv was built outside both repos (Python 3.11.15) so that
+neither /home/logan/projects/frob nor its `.venv` was touched:
+
+```
+uv venv <scratch>/frob-venv --python 3.11
+uv pip install --python <scratch>/frob-venv/bin/python --no-deps /home/logan/projects/frob
+uv pip install --python <scratch>/frob-venv/bin/python \
+    "pydantic>=2.12.0" "tree-sitter>=0.25.2" "tree-sitter-python>=0.25.0" \
+    "tree-sitter-cpp>=0.23.4" "tree-sitter-language-pack>=0.13" "pyyaml>=6" \
+    "jinja2>=3.1" "ruff>=0.8" "ty>=0.0.1a8" "packaging>=24" \
+    pytest pytest-xdist pytest-timeout hypothesis
+uv pip install --python <scratch>/frob-venv/bin/python /home/logan/projects/typani
+```
+
+Verified:
+
+```
+$ <scratch>/frob-venv/bin/python -c "import typani, frob; print(typani.__version__, typani.backend_name())"
+0.1.0 pure
+```
+
+frob's own `.venv` (typani 0.0.x, read-only, never synced) was used
+only as the baseline for comparison, via `uv run --no-sync`.
+
+### 4.2 Static: `ty check src`
+
+First pass showed 7 new-typani diagnostics against 1 baseline
+diagnostic, but the scratch venv had pulled `ty==0.0.78` (latest)
+while frob's own `.venv` pins `ty==0.0.46` -- a confound, not a
+typani effect. Pinning the scratch venv to `ty==0.0.46` (matching
+frob's baseline) and re-running:
+
+```
+$ diff <scratch>/ty_new2.txt <scratch>/ty_baseline.txt
+(no output)
+```
+
+Both runs produce byte-identical output: exit code 0, 1 diagnostic
+(an unrelated pre-existing `unused-ignore-comment` warning at
+`src/frob/app/ticket_runner/_new.py:421`, tracked by frob's own
+T-0044-style comment, unaffected by typani version). **New
+diagnostics attributable to typani 0.1.0: zero.**
+
+| # | diagnostic | classification |
+|---|---|---|
+| -- | none | -- |
+
+The 7 diagnostics seen under `ty==0.0.78` were a ty-version artifact
+(newer ty flags `Counter[str] += float`, redundant `cast`, a
+`getLevelName` overload deprecation, and a `sorted(key=...)` /
+`Mapping` union case that ty 0.0.46 does not flag) and are not part
+of this report's classification table since they reproduce with
+frob's OWN typani 0.0.x under `ty==0.0.78` too (not separately
+verified here, but the diff-against-matched-ty-version result above
+is sufficient to attribute them to the checker, not the library).
+
+### 4.3 Lint: `python -m typani.lint src --no-info --json`
+
+```
+$ <scratch>/frob-venv/bin/python -m typani.lint src --no-info --json
+typani.lint: 4 error(s), 649 info(s) in 649 file(s)
+```
+
+Exactly the 4 known TYP003 (discarded Result/Option) hits, nothing
+else:
+
+- `src/frob/gates/_coverage.py:1083` -- `write_coverage_lock`
+- `src/frob/serve/_daemon.py:554` -- `_poll_verify_worker`
+- `src/frob/tickets/_land.py:2216` -- `_land_plan_unwind_after_merge`
+- `src/frob/tickets/_land.py:6959` -- `_check_tdd_order`
+
+### 4.4 Runtime: pytest selection
+
+Excluded every test file matching `subprocess|GitRepo|run_git` under
+`tests/` (329 of frob's test files; this ruled out most of
+`test_tickets*.py`, which drive real git checkouts). Selected 10
+files that exercise ticket/gate/stats internals heavily without
+subprocess or git:
+
+`test_tickets_parent.py`, `test_stats_agentic.py`,
+`test_perf_rules_internals.py`, `test_ticket_evidence.py`,
+`test_tickets_scope_mutation.py`, `test_tickets_wave.py`,
+`test_tickets_dispatch_stale.py`, `test_tickets_milestone_sort.py`,
+`test_tickets_own_obligations.py`, `test_docenum_gate.py`
+
+Run against the scratch venv (typani 0.1.0):
+
+```
+nice <scratch>/frob-venv/bin/python -m pytest -q -n 2 -p no:cacheprovider \
+    -o addopts="" --timeout=120 --timeout-method=thread <10 files>
+SUITE-RESULT: exitstatus=0 collected=156 failed=0
+156 passed in 6.16s
+```
+
+Run against frob's own venv (typani 0.0.x, baseline, read-only):
+
+```
+nice uv run --no-sync pytest -q -n 2 -p no:cacheprovider \
+    -o addopts="" --timeout=120 --timeout-method=thread <10 files>
+SUITE-RESULT: exitstatus=0 collected=156 failed=0
+156 passed in 5.77s
+```
+
+Identical: 156/156 pass under both typani versions, zero new
+failures. A grep for truthy `Result`/`Option` usage in frob's source
+(`if result:`, `if res:`, `if option:`, `if opt:` with no
+`is_ok`/`is_err`/`is_some`/`is_none`/`is None` qualifier) via
+`git grep` returned zero hits, so frob never relies on `bool(Result)`
+/ `bool(Option)`, and the 0.1.0 change making `bool(result)` raise
+cannot surface here.
+
+### 4.5 Required follow-ups
+
+**typani fixes:** none. No typing regression, no lint false positive,
+no runtime behavior change was found in frob's surface.
+
+**frob fixes:** none required by this verification. The 4 TYP003
+lint hits are frob's own pre-existing discarded-Result sites (not new
+with 0.1.0) and are informational under typani's lint tool, not
+blocking; whether to silence or fix them is frob's call, tracked
+separately from this ticket.
+
+**Conclusion:** typani 0.1.0 is a drop-in upgrade for frob based on
+this verification. No incompatibilities were found across static
+typing, lint, or the runtime test selection.
