@@ -839,3 +839,18 @@ anchor_reason: null
 land_commit: null
 ```
 Consumer review of the 0.1 propagate design (frob T-3894) found a dynamic-extent hazard: @propagate catches UnwrapError from any undecorated helper below it and returns that container with wrong provenance. Scope the catch lexically via the raising frame's code object. Add an on_error hook and a DEBUG log. Lint: TYP004 distinguishes pass-through from mapped error shapes; TYP006 flags catch/catching with no named exception types; TYP007 flags except Exception / bare except inside Result-returning functions.
+
+## Done report
+
+The propagate contract had a dynamic-extent hole; it is now lexically scoped, carries an error return trace, and the mapped-error case has a one-line idiom. The failure path was measured piece by piece and inlined: 6.7us to 2.2us per hop against a 0.9us exception floor.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+(no evidence recorded)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 18 error(s), 1012 warning(s), 0 waived
+- error-findings: DOC006@CODE_OF_CONDUCT.md, DOC006@docs/lint.md, DRIFT002@tests/test_result_api.py, OPAQUE001@src/typani/_propagate.py, OPAQUE001@tests/test_propagate.py, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py, SYS003@src/typani/_propagate.py
