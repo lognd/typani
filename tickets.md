@@ -362,3 +362,18 @@ anchor_reason: null
 land_commit: null
 ```
 The pyversions badge read 'missing' because neither distribution declared Programming Language classifiers. Metadata-only patch release.
+
+## Done report
+
+Metadata-only patch: classifiers and keywords on both distributions so badge services and PyPI report Python 3.10-3.13 and the MIT license.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+(no evidence recorded)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 0 error(s), 1005 warning(s), 2 waived
+- error-findings: none (measured, zero errors)
