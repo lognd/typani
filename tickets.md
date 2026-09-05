@@ -663,7 +663,7 @@ Every mypy suppression now either disappears behind a cast, a Mapping parameter 
 id: T-0013
 title: 'docs and README: banner, professional README, module docs for 0.1 API, strata
   model update, CHANGELOG'
-state: queued
+state: in-progress
 kind: docs
 origin: agent
 created: '2026-09-05'
@@ -681,13 +681,65 @@ runs_last_parallel_safe: false
 runs_last_parallel_safe_reason: null
 scope:
 - README.md
-- docs/**
 - design/typani.strata
 - CHANGELOG.md
+- docs/index.md
+- docs/design.md
+- docs/native.md
+- docs/result.md
+- docs/option.md
+- docs/lint.md
+- docs/assets/*.svg
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: remove
+  glob: docs/**
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: README.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/index.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/design.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/native.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/result.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/option.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/lint.md
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/assets/*.svg
+  reason: narrow to the doc files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
@@ -697,6 +749,20 @@ land_commit: null
 ```
 NumPy-style banner at docs/assets/typani-banner.svg (ASCII-only). README: banner, badges, install (typani / typani[native]), 60-second tour using match + propagate + notes, backend table, lint, links. docs/*.md updated to the 0.1 surface; design/typani.strata gains nodes for _impl/_exceptions/_propagate/lint.
 
+## Done report
+
+README rewritten for 0.1 around the banner with a runnable tour, audit-backed rationale, feature and lint tables and an honest performance section; module docs gained the anchors the frob:doc comments point at; CHANGELOG lists 0.1.0 by ticket; the strata design model adds the new modules with their real import flows and frob sys audit is PROVED.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+(no evidence recorded)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 43 error(s), 964 warning(s), 0 waived
+- error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/assets/typani-banner.svg, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
 <!-- ticket:T-0014 -->
 ```yaml
 id: T-0014
@@ -723,6 +789,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_backend.py::test_backend_matches_typani_pure_env
 designated_repro_test: null
 threat: null
 component: null
@@ -731,3 +799,18 @@ anchor_reason: null
 land_commit: null
 ```
 Install the working tree into a scratch venv (never ../frob/.venv), run ty check and a niced pytest -n 2 over frob unit modules that do not spawn subprocesses. Record findings in docs/redesign-0.1.md section 3.
+
+## Done report
+
+Verified typani 0.1.0 as a drop-in upgrade for frob in a scratch venv: zero new ty diagnostics once ty versions were matched, only the four known lint hits, and 156/156 unit tests identical under both typani versions. Findings recorded in docs/redesign-0.1.md section 4.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_backend.py::test_backend_matches_typani_pure_env` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 43 error(s), 951 warning(s), 0 waived
+- error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/assets/typani-banner.svg, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
