@@ -8,7 +8,7 @@ import sys
 import textwrap
 from pathlib import Path
 
-from typani.lint import Finding, check_paths, check_source
+from typani.lint import Finding, Report, check_paths, check_source, check_tree
 
 _FIXTURES = Path(__file__).parent / "fixtures" / "lint"
 
@@ -340,16 +340,45 @@ def test_cli_json_shape(tmp_path: Path) -> None:
     )
     result = _run_cli(".", "--json", cwd=tmp_path)
     payload = json.loads(result.stdout)
-    assert isinstance(payload, list)
-    assert payload[0]["rule"] == "TYP002"
-    assert set(payload[0].keys()) == {
+    assert isinstance(payload, dict)
+    assert payload["version"] == 1
+    assert isinstance(payload["files_scanned"], int)
+    assert payload["files_scanned"] == 1
+    findings = payload["findings"]
+    assert isinstance(findings, list)
+    assert findings[0]["rule"] == "TYP002"
+    assert set(findings[0].keys()) == {
         "rule",
         "path",
         "line",
         "col",
         "message",
         "severity",
+        "symref",
     }
+
+
+# frob:tests src/typani/lint/__main__.py::main
+def test_cli_json_files_scanned_counts_all_python_files(tmp_path: Path) -> None:
+    (tmp_path / "a.py").write_text("x = 1\n")
+    (tmp_path / "b.py").write_text("y = 2\n")
+    (tmp_path / "c.py").write_text("z = 3\n")
+    result = _run_cli(".", "--json", cwd=tmp_path)
+    payload = json.loads(result.stdout)
+    assert payload["files_scanned"] == 3
+    assert payload["findings"] == []
+
+
+# frob:tests src/typani/lint/__main__.py::main
+def test_cli_json_zero_match_warns_and_exits_zero(tmp_path: Path) -> None:
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    result = _run_cli(str(empty_dir), "--json", cwd=tmp_path)
+    payload = json.loads(result.stdout)
+    assert payload["files_scanned"] == 0
+    assert payload["findings"] == []
+    assert result.returncode == 0
+    assert "no Python files matched" in result.stderr
 
 
 # frob:tests src/typani/lint/__main__.py::main
@@ -377,6 +406,83 @@ def test_cli_select_and_ignore(tmp_path: Path) -> None:
     ignore_typ001 = _run_cli(".", "--ignore", "TYP001", cwd=tmp_path)
     assert "TYP001" not in ignore_typ001.stdout
     assert "TYP002" in ignore_typ001.stdout
+
+
+# --- check_tree: Report envelope (files_scanned, symref) ---------------------
+
+
+# frob:tests src/typani/lint/__init__.py::check_tree
+def test_check_tree_files_scanned_counts_files(tmp_path: Path) -> None:
+    (tmp_path / "a.py").write_text("x = 1\n")
+    (tmp_path / "b.py").write_text("y = 2\n")
+    report = check_tree([tmp_path])
+    assert isinstance(report, Report)
+    assert report.version == 1
+    assert report.files_scanned == 2
+    assert report.findings == []
+
+
+# frob:tests src/typani/lint/__init__.py::check_tree
+def test_check_tree_zero_match_reports_zero_scanned(tmp_path: Path) -> None:
+    empty_dir = tmp_path / "empty"
+    empty_dir.mkdir()
+    report = check_tree([empty_dir])
+    assert report.files_scanned == 0
+    assert report.findings == []
+
+
+# frob:tests src/typani/lint/__init__.py::check_tree
+def test_check_tree_syntax_error_file_still_counted_as_scanned(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "bad_syntax.py").write_text("def f(:\n    pass\n")
+    report = check_tree([tmp_path])
+    assert report.files_scanned == 1
+    assert [f.rule for f in report.findings] == ["TYP000"]
+    assert report.findings[0].symref == report.findings[0].path
+
+
+# frob:tests src/typani/lint/__init__.py::check_paths
+def test_check_paths_matches_check_tree_findings(tmp_path: Path) -> None:
+    (tmp_path / "bad.py").write_text(
+        "def f():\n    r = Ok(1)\n    if r.ok:\n        pass\n"
+    )
+    assert check_paths([tmp_path]) == check_tree([tmp_path]).findings
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_symref_module_level() -> None:
+    source = "Ok(1)\n"
+    findings = check_source(source, path="src/x.py")
+    assert findings[0].symref == "src/x.py"
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_symref_function_scope() -> None:
+    source = "def helper():\n    Ok(1)\n"
+    findings = check_source(source, path="src/x.py")
+    assert findings[0].symref == "src/x.py::helper"
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_symref_method_scope() -> None:
+    source = "class Foo:\n    def bar(self):\n        Ok(1)\n"
+    findings = check_source(source, path="src/x.py")
+    assert findings[0].symref == "src/x.py::Foo.bar"
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_symref_nested_function_scope() -> None:
+    source = "def outer():\n    def inner():\n        Ok(1)\n    inner()\n"
+    findings = check_source(source, path="src/x.py")
+    assert findings[0].symref == "src/x.py::outer.inner"
+
+
+# frob:tests src/typani/lint/__init__.py::check_source
+def test_symref_typ000_is_bare_path() -> None:
+    findings = check_source("def f(:\n    pass\n", path="src/x.py")
+    assert findings[0].rule == "TYP000"
+    assert findings[0].symref == "src/x.py"
 
 
 # --- self-check: the library's own source, examples, and tests --------------

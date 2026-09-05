@@ -7,7 +7,7 @@ import logging
 import sys
 from pathlib import Path
 
-from typani.lint import Finding, _iter_python_files, check_paths
+from typani.lint import JSON_VERSION, Finding, Report, check_tree
 from typani.lint._report import render_json, render_text
 
 _log = logging.getLogger(__name__)
@@ -71,10 +71,13 @@ def main(argv: list[str] | None = None) -> int:
 
     paths = [Path(p) for p in args.paths]
     _log.info("main: scanning %s (exclude=%s)", paths, args.exclude)
-    all_findings = check_paths(paths, exclude=args.exclude)
+    report = check_tree(paths, exclude=args.exclude)
+
+    if report.files_scanned == 0:
+        _log.warning("typani.lint: no Python files matched %s", paths)
 
     gate_findings = _filter_findings(
-        all_findings, select=args.select, ignore=args.ignore, no_info=False
+        report.findings, select=args.select, ignore=args.ignore, no_info=False
     )
     display_findings = (
         [f for f in gate_findings if f.severity != "info"]
@@ -83,7 +86,12 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if args.json:
-        print(render_json(display_findings))
+        display_report = Report(
+            version=JSON_VERSION,
+            files_scanned=report.files_scanned,
+            findings=display_findings,
+        )
+        print(render_json(display_report))
     else:
         text = render_text(display_findings)
         if text:
@@ -91,17 +99,16 @@ def main(argv: list[str] | None = None) -> int:
 
     error_count = sum(1 for f in gate_findings if f.severity == "error")
     info_count = sum(1 for f in gate_findings if f.severity == "info")
-    file_count = len(list(_iter_python_files(paths, list(args.exclude))))
     print(
         f"typani.lint: {error_count} error(s), {info_count} info(s) in "
-        f"{file_count} file(s)",
+        f"{report.files_scanned} file(s) scanned",
         file=sys.stderr,
     )
     _log.info(
-        "main: %d error(s), %d info(s) across %d file(s)",
+        "main: %d error(s), %d info(s) across %d file(s) scanned",
         error_count,
         info_count,
-        file_count,
+        report.files_scanned,
     )
     return 1 if error_count else 0
 

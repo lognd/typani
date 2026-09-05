@@ -7,7 +7,7 @@ import logging
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typani.lint import Finding
+    from typani.lint import Finding, Report
 
 _log = logging.getLogger(__name__)
 
@@ -37,18 +37,29 @@ def _format_line(finding: "Finding") -> str:
 
 
 # frob:doc docs/lint.md#render_json
-# frob:ticket T-0011
-def render_json(findings: list["Finding"]) -> str:
-    """Render findings as a JSON array of finding dicts, in their given order."""
-    payload = [
-        {
-            "rule": f.rule,
-            "path": f.path,
-            "line": f.line,
-            "col": f.col,
-            "message": f.message,
-            "severity": f.severity,
-        }
-        for f in findings
-    ]
-    return json.dumps(payload)
+# frob:ticket T-0018
+def render_json(report: "Report") -> str:
+    """Render a Report as the versioned JSON envelope, preserving finding order."""
+    payload = {
+        "version": report.version,
+        "files_scanned": report.files_scanned,
+        "findings": [
+            {
+                "rule": f.rule,
+                "path": f.path,
+                "line": f.line,
+                "col": f.col,
+                "message": f.message,
+                "severity": f.severity,
+                "symref": f.symref,
+            }
+            for f in report.findings
+        ],
+    }
+    _log.debug(
+        "render_json: version=%d files_scanned=%d findings=%d",
+        report.version,
+        report.files_scanned,
+        len(report.findings),
+    )
+    return json.dumps(payload, indent=2)

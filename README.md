@@ -195,6 +195,10 @@ and can be forced with `TYPANI_PURE=1`. Full numbers and methodology:
 python -m typani.lint src
 ```
 
+`--json` emits a versioned envelope (`{"version": 1, "files_scanned": N,
+"findings": [...]}`) instead of a bare array, so a scan of zero matched
+files can be told apart from a clean scan of N files.
+
 | Rule | Severity | Detects |
 |------|----------|---------|
 | TYP001 | error | a property (`danger_ok`, `is_ok`, `some`, ...) called as a method |

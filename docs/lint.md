@@ -25,7 +25,7 @@ them again every time.
 ```console
 $ python -m typani.lint                      # lint "." by default
 $ python -m typani.lint src tests             # lint specific paths
-$ python -m typani.lint --json src            # JSON array on stdout
+$ python -m typani.lint --json src            # versioned JSON envelope on stdout
 $ python -m typani.lint --no-info src         # hide info-severity findings
 $ python -m typani.lint --select TYP001 src   # only run one rule
 $ python -m typani.lint --ignore TYP004 src   # drop one rule
@@ -39,10 +39,11 @@ src/app/queue.py:42:7: TYP002 'ok' is the payload or None; falsy payloads (0, ''
 ```
 
 Errors are printed before infos; each group is sorted by
-`(path, line, col)`. A summary line always goes to **stderr**:
+`(path, line, col)`. A summary line always goes to **stderr**, for both
+text and `--json` output:
 
 ```
-typani.lint: 2 error(s), 1 info(s) in 37 file(s)
+typani.lint: 2 error(s), 1 info(s) in 37 file(s) scanned
 ```
 
 ### Exit codes
@@ -52,7 +53,7 @@ otherwise. `--no-info` only changes what is *printed* -- it never changes
 the exit code, since info findings never gate the exit code in the first
 place.
 
-### `check_paths` walking rules
+### `check_tree` walking rules
 
 `*.py` files are found recursively under each given path. `.venv`,
 `.git`, `__pycache__`, `node_modules`, `build`, and `dist` directories are
@@ -232,12 +233,32 @@ another tool, alongside the CLI.
 ### `Finding`
 
 ```python
-Finding(rule: str, path: str, line: int, col: int, message: str, severity: str)
+Finding(
+    rule: str,
+    path: str,
+    line: int,
+    col: int,
+    message: str,
+    severity: str,
+    symref: str,
+)
 ```
 
 One lint hit: a frozen dataclass with the rule id (e.g. `"TYP001"`), the
-file path, 1-based line, 0-based column, a human-readable message, and
-`severity` (`"error"` or `"info"`).
+file path, 1-based line, 0-based column, a human-readable message,
+`severity` (`"error"` or `"info"`), and `symref` -- see "JSON schema"
+below for its shape.
+
+### `Report`
+
+```python
+Report(version: int, files_scanned: int, findings: list[Finding])
+```
+
+The result of one `check_tree` run: the envelope `version`
+(`JSON_VERSION`, currently `1`), the count of files actually parsed
+(`files_scanned`), and the `findings` list. `render_json` renders a
+`Report` as the JSON envelope described in "JSON schema" below.
 
 ### `check_source`
 
@@ -250,15 +271,26 @@ becomes a single `Finding(rule="TYP000", severity="error", ...)` instead.
 Honors `# typani: skip-file` and `# typani: ignore[...]` on the given
 source.
 
+### `check_tree`
+
+```python
+check_tree(paths: Iterable[Path], *, exclude: Iterable[str] = ()) -> Report
+```
+
+Walks each path for `*.py` files (see "`check_tree` walking rules"
+above), runs `check_source` on each, and returns a `Report`: the
+findings sorted by `(path, line, col)`, plus the number of files
+actually parsed. A file that fails to parse (a `TYP000` syntax error)
+still counts toward `files_scanned`.
+
 ### `check_paths`
 
 ```python
 check_paths(paths: Iterable[Path], *, exclude: Iterable[str] = ()) -> list[Finding]
 ```
 
-Walks each path for `*.py` files (see "`check_paths` walking rules"
-above) and runs `check_source` on each, returning every finding sorted by
-`(path, line, col)`.
+Backward-compatible wrapper: `check_tree(paths, exclude=exclude).findings`.
+Prefer `check_tree` in new code, since it also reports `files_scanned`.
 
 ### `is_skip_file`
 
@@ -290,11 +322,11 @@ findings before info-severity ones, each group sorted.
 ### `render_json`
 
 ```python
-render_json(findings: list[Finding]) -> str
+render_json(report: Report) -> str
 ```
 
-Renders findings as a JSON array of finding dicts (see "JSON schema"
-below), preserving the given order.
+Renders a `Report` as the versioned JSON envelope (see "JSON schema"
+below), preserving the given finding order.
 
 ### `build_parser`
 
@@ -315,21 +347,59 @@ the process exit code (see "Exit codes" above).
 
 ## JSON schema
 
-`--json` prints a JSON array; each element is:
+`--json` prints a versioned envelope, not a bare array -- a bare
+top-level array cannot tell a run that scanned 200 files and found
+nothing apart from a run that matched zero files, and has no version
+field for a consumer to check the shape against:
 
 ```json
 {
-  "rule": "TYP002",
-  "path": "src/app/queue.py",
-  "line": 42,
-  "col": 7,
-  "message": "'ok' is the payload or None; falsy payloads (0, '', []) will be misread -- test 'is_ok' instead",
-  "severity": "error"
+  "version": 1,
+  "files_scanned": 214,
+  "findings": [
+    {
+      "rule": "TYP002",
+      "path": "src/app/queue.py",
+      "line": 42,
+      "col": 7,
+      "message": "'ok' is the payload or None; falsy payloads (0, '', []) will be misread -- test 'is_ok' instead",
+      "severity": "error",
+      "symref": "src/app/queue.py::Queue.pop"
+    }
+  ]
 }
 ```
 
-`severity` is `"error"` or `"info"`. A syntax error in a scanned file
-produces one `TYP000`/`"error"` finding for that file instead of raising.
+- `version` is the envelope's format version (`JSON_VERSION`, currently
+  `1`). See "Format stability" below.
+- `files_scanned` is the count of `*.py` files `check_tree` actually
+  parsed, independent of `--select`/`--ignore`/`--no-info` filtering
+  (those filter `findings` only). A file that fails to parse (`TYP000`)
+  still counts. A run that matches zero files prints
+  `"files_scanned": 0, "findings": []` and exits `0` -- it is not
+  treated as an error -- but logs a WARNING to stderr:
+  `typani.lint: no Python files matched <paths>`, so a silent
+  zero-match is loud even though it is not a failure.
+- `findings` is the array of finding dicts, in the order described
+  under "Text output" above. `severity` is `"error"` or `"info"`. A
+  syntax error in a scanned file produces one `TYP000`/`"error"`
+  finding for that file instead of raising.
+- `symref` binds a finding to a symbol as `"<path>::<qualname>"`, where
+  `qualname` is the dotted enclosing scope at the point of the finding:
+  a bare class/function name at module scope, `Class.method` inside a
+  method, and `outer.inner` for a nested function. Module-level findings
+  (not inside any `def`/`class`) get the bare path with no `::`. `TYP000`
+  syntax-error findings always get the bare path, since no AST exists to
+  derive a scope from.
+
+### Format stability
+
+`version` increments only on a breaking change to the envelope shape or
+to an existing finding field's name, type, or order. Adding a new
+field -- to the envelope or to a finding -- is never a breaking change
+and never bumps `version`. A consumer that receives an unrecognized
+`version` should reject the payload loudly (raise, fail the check) rather
+than guess at the shape.
 
 ## CI recipe
 

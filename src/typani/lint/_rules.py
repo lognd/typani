@@ -197,6 +197,7 @@ class MisuseVisitor(ast.NodeVisitor):
         self.path = path
         self.findings: list["Finding"] = []
         self._scope_stack: list[dict[str, bool]] = []
+        self._qual_stack: list[str] = []
         registry = _FunctionRegistry()
         self._module_funcs: dict[str, bool] = {}
         self._method_funcs: dict[str, bool] = {}
@@ -212,16 +213,26 @@ class MisuseVisitor(ast.NodeVisitor):
     # -- scope tracking for TYP003c local-variable binding ------------------
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Push a fresh local-binding scope, visit the body, then pop it."""
+        """Push a fresh local-binding scope and qualname segment, then pop both."""
         self._scope_stack.append({})
+        self._qual_stack.append(node.name)
         self.generic_visit(node)
+        self._qual_stack.pop()
         self._scope_stack.pop()
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         """Async twin of visit_FunctionDef: same scope push/pop discipline."""
         self._scope_stack.append({})
+        self._qual_stack.append(node.name)
         self.generic_visit(node)
+        self._qual_stack.pop()
         self._scope_stack.pop()
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        """Push a qualname segment for the class body, then pop it after visiting."""
+        self._qual_stack.append(node.name)
+        self.generic_visit(node)
+        self._qual_stack.pop()
 
     def visit_Assign(self, node: ast.Assign) -> None:
         """Track `name = Ok(...)`-shaped bindings so TYP003c can follow the name."""
@@ -500,6 +511,12 @@ class MisuseVisitor(ast.NodeVisitor):
 
     # -- shared -----------------------------------------------------------
 
+    def _current_symref(self) -> str:
+        """Return this symref: bare path at module scope, else path::qualname."""
+        if not self._qual_stack:
+            return self.path
+        return f"{self.path}::{'.'.join(self._qual_stack)}"
+
     def _add(self, rule: str, node: ast.AST, message: str, severity: str) -> None:
         """Append one Finding at *node*'s location; imported lazily to avoid a cycle."""
         from typani.lint import Finding
@@ -512,5 +529,6 @@ class MisuseVisitor(ast.NodeVisitor):
                 col=getattr(node, "col_offset", 0),
                 message=message,
                 severity=severity,
+                symref=self._current_symref(),
             )
         )

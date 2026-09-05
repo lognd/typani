@@ -31,7 +31,7 @@ _FIXTURE_LINT_DIR = Path("tests") / "fixtures" / "lint"
 # frob:ticket T-0011
 @dataclass(frozen=True, slots=True)
 class Finding:
-    """One lint hit: a rule id, its location, and a human-readable message."""
+    """One lint hit: a rule id, its location, a message, and its bound symref."""
 
     rule: str
     path: str
@@ -39,9 +39,34 @@ class Finding:
     col: int
     message: str
     severity: str
+    symref: str
 
 
-__all__ = ["Finding", "RULES", "check_source", "check_paths"]
+# frob:doc docs/lint.md#json-schema
+# frob:ticket T-0018
+JSON_VERSION = 1
+
+
+# frob:doc docs/lint.md#report
+# frob:ticket T-0018
+@dataclass(frozen=True, slots=True)
+class Report:
+    """A full check_tree run: envelope version, files scanned, and findings."""
+
+    version: int
+    files_scanned: int
+    findings: list[Finding]
+
+
+__all__ = [
+    "Finding",
+    "RULES",
+    "Report",
+    "JSON_VERSION",
+    "check_source",
+    "check_paths",
+    "check_tree",
+]
 
 
 # frob:doc docs/lint.md#check_source
@@ -61,6 +86,7 @@ def check_source(source: str, path: str = "<string>") -> list[Finding]:
                 col=(exc.offset or 1) - 1,
                 message=f"syntax error: {exc.msg}",
                 severity="error",
+                symref=path,
             )
         ]
 
@@ -75,25 +101,42 @@ def check_source(source: str, path: str = "<string>") -> list[Finding]:
     return findings
 
 
-# frob:doc docs/lint.md#check_paths
-# frob:ticket T-0011
-def check_paths(paths: Iterable[Path], *, exclude: Iterable[str] = ()) -> list[Finding]:
-    """Walk *paths* for ``*.py`` files (skipping vcs/build noise) and lint each one."""
+# frob:doc docs/lint.md#check_tree
+# frob:ticket T-0018
+def check_tree(paths: Iterable[Path], *, exclude: Iterable[str] = ()) -> Report:
+    """Walk *paths* for ``*.py`` files (skipping vcs/build noise), lint each one.
+
+    Returns a versioned Report carrying both the finding list and the count of
+    files actually parsed (a syntax-error file still counts as scanned), so a
+    zero-finding run can be told apart from a zero-file run.
+    """
     exclude_globs = list(exclude)
     findings: list[Finding] = []
+    files_scanned = 0
     for py_file in _iter_python_files(paths, exclude_globs):
         try:
             source = py_file.read_text(encoding="utf-8")
         except OSError as exc:
-            _log.error("check_paths: could not read %s: %s", py_file, exc)
+            _log.error("check_tree: could not read %s: %s", py_file, exc)
             continue
+        files_scanned += 1
         findings.extend(check_source(source, path=str(py_file)))
 
     findings.sort(key=lambda f: (f.path, f.line, f.col))
     _log.info(
-        "check_paths: scanned paths=%s -> %d finding(s)", list(paths), len(findings)
+        "check_tree: scanned paths=%s -> %d file(s), %d finding(s)",
+        list(paths),
+        files_scanned,
+        len(findings),
     )
-    return findings
+    return Report(version=JSON_VERSION, files_scanned=files_scanned, findings=findings)
+
+
+# frob:doc docs/lint.md#check_paths
+# frob:ticket T-0011
+def check_paths(paths: Iterable[Path], *, exclude: Iterable[str] = ()) -> list[Finding]:
+    """Walk *paths* and lint each ``*.py`` file; kept for backward compatibility."""
+    return check_tree(paths, exclude=exclude).findings
 
 
 def _iter_python_files(
