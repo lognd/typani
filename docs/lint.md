@@ -570,3 +570,5 @@ command-based policy kind, this section should be revisited to wire
 `typani.lint` in natively; no `frob:todo` is left for this in
 `src/typani/lint` itself since the missing capability lives in frob, a
 different project, not in this repo.
+
+Scope, stated for consumers: TYP007 flags only BROAD handlers (`except:`, `except Exception`, `except BaseException`, or a tuple containing them) inside a function annotated to return `Result`/`Option`. It does not flag narrow, deliberate handlers such as `except (OSError, ValueError)` followed by `return Err(...)`; those are the wider population of exception-to-Result boundaries (93 in frob 0.530.0 by a hand count, of which 17 are broad). A rule for the full boundary set would be an inventory, not a defect detector, and is not planned.
