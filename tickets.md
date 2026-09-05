@@ -467,7 +467,7 @@ docs/redesign-0.1.md section 2.6. python -m typani.lint PATH...; exit 1 on TYP00
 id: T-0012
 title: 'leaf modules pass: re-include singleton.py in graph (T-0001), fix ty diagnostics
   (T-0002), examples on 0.1 idioms'
-state: queued
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
