@@ -240,3 +240,38 @@ Filed: none (all findings were fixable in scope).
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 0 error(s), 941 warning(s), 0 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0018 -->
+```yaml
+id: T-0018
+title: 'typani.lint JSON envelope: version, files_scanned, findings, and per-finding
+  symref'
+state: in-progress
+kind: feature
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/lint/*.py
+- tests/test_lint.py
+- docs/lint.md
+- README.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Consumer feedback (frob T-3849): a bare top-level array is the silent-zero shape -- [] from 200 scanned files and [] from zero matched files are indistinguishable -- and carries no version for a consumer to check the format against. Emit {version: 1, files_scanned: N, findings: [...]} with the finding fields unchanged, plus an optional symref (path::qualname) per finding so frob can bind findings to graph symbols instead of line numbers.
