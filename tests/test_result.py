@@ -32,15 +32,11 @@ def test_err_is_err() -> None:
 
 
 # frob:tests src/typani/result.py::Result
-def test_neither_ok_nor_err_raises() -> None:
-    with pytest.raises(TypeError, match="neither"):
+def test_direct_construction_raises() -> None:
+    # 0.1: `Result` is abstract; only Ok/Err subclasses construct. This
+    # replaces the 0.0.x "neither ok nor err" boilerplate-kwarg test.
+    with pytest.raises(TypeError, match="abstract"):
         Result()  # type: ignore[call-overload]
-
-
-# frob:tests src/typani/result.py::Result
-def test_both_ok_and_err_raises() -> None:
-    with pytest.raises(TypeError, match="both"):
-        Result(ok=1, err="x")  # type: ignore[call-overload]
 
 
 def test_map_on_ok() -> None:

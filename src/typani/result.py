@@ -1,33 +1,39 @@
 from __future__ import annotations
 
-from typing import Callable, Final, Generic, Optional, TypeVar, cast, final
+import copy as _copy
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Generic,
+    Iterator,
+    TypeVar,
+    final,
+)
 
-from typani.unit import Unit
+from typani._exceptions import UnwrapError
 
-T = TypeVar("T")
+if TYPE_CHECKING:
+    from typani.option import Option
+
+T_co = TypeVar("T_co", covariant=True)
+E_co = TypeVar("E_co", covariant=True)
+U = TypeVar("U")
 V = TypeVar("V")
-E = TypeVar("E")
 F = TypeVar("F")
 
-
-# noinspection PyPep8Naming
-@final
-class _OK_UNIT(Unit): ...
+_OK_MARKER = 0
+_ERR_MARKER = 1
 
 
-# noinspection PyPep8Naming
-@final
-class _EMPTY_UNIT(Unit): ...
-
-
-# frob:ticket T-0004
-# frob:ticket T-0003
-class Result(Generic[T, E]):
+# frob:doc docs/result.md#result
+# frob:ticket T-0009
+class Result(Generic[T_co, E_co]):
     """Rust-inspired ``Result<T, E>``: a value that is either ``Ok(T)`` or ``Err(E)``.
 
-    Exactly one variant must be set at construction time; providing both or
-    neither raises ``TypeError``.  Prefer the :func:`Ok` and :func:`Err`
-    factory functions over constructing directly.
+    Abstract base of :class:`Ok` and :class:`Err`; not directly constructible.
+    Prefer ``isinstance(r, Ok)`` / ``isinstance(r, Err)`` narrowing or
+    ``match r: case Ok(v): ... case Err(e): ...`` over hand-rolled checks.
 
     Operator shortcuts::
 
@@ -35,208 +41,489 @@ class Result(Generic[T, E]):
         result >> func   # alias for result.and_then(func)
     """
 
-    # frob:doc docs/result.md#result
-    _OK_SINGLETON: Final[_OK_UNIT] = _OK_UNIT()
-    _ERR_SINGLETON: Final[_EMPTY_UNIT] = _EMPTY_UNIT()
+    __slots__ = ()
 
-    def __init__(
-        self, *, ok: T | _OK_UNIT = _OK_SINGLETON, err: E | _EMPTY_UNIT = _ERR_SINGLETON
-    ) -> None:
-        """Construct a Result.  Use :func:`Ok` / :func:`Err` instead."""
-        self._ok: Final[T | _OK_UNIT] = ok
-        self._err: Final[E | _EMPTY_UNIT] = err
-        if self._ok is Result._OK_SINGLETON and self._err is Result._ERR_SINGLETON:
-            raise TypeError(
-                "There is a `Result` with neither an `ok` option specified or an `err` option specified."
-            )
-        elif (
-            self._ok is not Result._OK_SINGLETON
-            and self._err is not Result._ERR_SINGLETON
-        ):
-            raise TypeError(
-                f"There is a `Result` with both an `ok` option (type: `{self._ok.__class__.__name__}`, repr: `{self._ok}`) and an `err` option (type: `{self._err.__class__.__name__}`, repr: `{self._err}`) specified."
-            )
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        """Forbid direct construction; ``Ok``/``Err`` override, never call this."""
+        raise TypeError("Result is abstract; construct Ok(value) or Err(error)")
 
-    def map(self, func: Callable[[T], V]) -> Result[V, E]:
-        """Apply *func* to the success value; pass ``Err`` through unchanged."""
-        # frob:doc docs/result.md#map-func---resultv-e
-        # frob:ticket T-0004
-        if self.is_err:
-            # cast is safe because invariant is only `err` or `ok` specified.
-            # if object `is_err`, then `ok` is empty anyway, and this is safe.
-            # noinspection PyUnnecessaryCast
-            return cast(Result[V, E], self)
-        # cast is safe because `is_err` being false guarantees that `_ok` is valid.
-        # noinspection PyUnnecessaryCast
-        return Result[V, E](ok=func(cast(T, self._ok)))
+    @classmethod
+    def catch(
+        cls,
+        fn: Callable[[], T_co],
+        *exceptions: type[BaseException],
+        on_error: Callable[[BaseException], E_co],
+    ) -> "Result[T_co, E_co]":
+        """Run *fn*; return ``Ok(fn())``, or ``Err(on_error(exc))`` for a caught exc.
 
-    def map_err(self, func: Callable[[E], F]) -> Result[T, F]:
-        """Apply *func* to the error value; pass ``Ok`` through unchanged."""
-        # frob:doc docs/result.md#map_err-func---resultt-f
-        # frob:ticket T-0004
-        # casts are safe for the same reasons as above.
-        if self.is_ok:
-            # noinspection PyUnnecessaryCast
-            return cast(Result[T, F], self)
-        # noinspection PyUnnecessaryCast
-        return Result[T, F](err=func(cast(E, self._err)))
-
-    def and_then(self, func: Callable[[T], Result[V, F]]) -> Result[V, E | F]:
-        """Chain a fallible computation; propagate the first error encountered.
-
-        If ``self`` is ``Ok``, calls ``func(value)`` and returns its result.
-        If ``self`` or the returned inner result is ``Err``, that error is
-        returned and ``func`` is never called.
+        Defaults to catching ``Exception`` (never ``BaseException``) when no
+        *exceptions* are given. This is the single home for the
+        exception-to-Result boundary instead of hand-written ``try/except``.
         """
-        # frob:doc docs/result.md#and_then-func---resultv-e--f
-        # frob:ticket T-0004
-        result = self.map(func)
+        # frob:doc docs/result.md#catchfn-exceptions-on_error---resultt-e
+        caught = exceptions or (Exception,)
+        try:
+            return Ok(fn())
+        except caught as exc:
+            return Err(on_error(exc))
 
-        # Lots of casting; couple are "unnecessary", but I do it just to appease
-        # any checker in the future that's *really* smart (i.e. no double singletons).
-        # Additionally, you can check manually but the invariants of `is_err` and
-        # `is_ok` ensures each of the following casts are safe.
-
-        if result.is_err:
-            # noinspection PyUnnecessaryCast
-            return Result[V, E | F](err=cast(E, result._err))
-        # noinspection PyUnnecessaryCast
-        ok = cast(Result[V, F], result._ok)
-        if ok.is_err:
-            # noinspection PyUnnecessaryCast
-            return Result[V, E | F](err=cast(F, ok._err))
-        # noinspection PyUnnecessaryCast
-        return Result[V, E | F](ok=cast(V, ok._ok))
-
-    def or_else(self, func: Callable[[E], Result[T, F]]) -> Result[T, F]:
-        """Recover from an error by calling *func* with the error value.
-
-        If ``self`` is ``Ok``, returns ``self`` unchanged.
-        """
-        # frob:doc docs/result.md#or_else-func---resultt-f
-        # frob:ticket T-0004
-        if self.is_ok:
-            # noinspection PyUnnecessaryCast
-            return cast(Result[T, F], self)
-        # not `is_ok` invariant guarantees `err` cast validity
-        # noinspection PyUnnecessaryCast
-        return func(cast(E, self.err))
-
-    def inspect(self, func: Callable[[T], None]) -> Result[T, E]:
-        """Call *func* with the success value for side effects; return ``self`` unchanged."""
-        # frob:doc docs/result.md#inspect-func---resultt-e
-        # frob:ticket T-0004
-        if not self.is_err:
-            # cast is safe because invariant is only `err` or `ok` specified.
-            # if object `is_err`, then `ok` is empty anyway, and this is safe.
-            # noinspection PyUnnecessaryCast
-            func(cast(T, self._ok))
-        return self
+    # -- properties implemented per subclass -----------------------------
 
     @property
     def is_ok(self) -> bool:
         """``True`` when this result holds a success value."""
-        # frob:doc docs/result.md#properties
-        # frob:ticket T-0004
-        return self._ok is not Result._OK_SINGLETON
-
-    @property
-    def ok(self) -> Optional[T]:
-        """The success value, or ``None`` if this is an ``Err``."""
-        # frob:doc docs/result.md#properties
-        # frob:ticket T-0004
-        # cast is safe because `is_ok` guarantees that `_ok` is valid.
-        # noinspection PyUnnecessaryCast
-        return cast(T, self._ok) if self.is_ok else None
-
-    @property
-    def danger_ok(self) -> T:
-        """The success value; asserts ``is_ok`` and crashes on ``Err``."""
-        # frob:doc docs/result.md#properties
-        # frob:ticket T-0004
-        assert self.is_ok
-        # noinspection PyUnnecessaryCast
-        return cast(T, self._ok)
+        raise NotImplementedError
 
     @property
     def is_err(self) -> bool:
         """``True`` when this result holds an error value."""
-        # frob:doc docs/result.md#properties
-        # frob:ticket T-0004
-        return self._err is not Result._ERR_SINGLETON
+        raise NotImplementedError
 
     @property
-    def err(self) -> Optional[E]:
+    def ok(self) -> T_co | None:
+        """The success value, or ``None`` if this is an ``Err``."""
+        raise NotImplementedError
+
+    @property
+    def err(self) -> E_co | None:
         """The error value, or ``None`` if this is an ``Ok``."""
-        # frob:doc docs/result.md#properties
-        # frob:ticket T-0004
-        # cast is safe because `is_err` guarantees that `_err` is valid.
-        # noinspection PyUnnecessaryCast
-        return cast(E, self._err) if self.is_err else None
+        raise NotImplementedError
 
     @property
-    def danger_err(self) -> E:
-        """The error value; asserts ``is_err`` and crashes on ``Ok``."""
-        # frob:doc docs/result.md#properties
-        # frob:ticket T-0004
-        assert self.is_err
-        # noinspection PyUnnecessaryCast
-        return cast(E, self._err)
+    def danger_ok(self) -> T_co:
+        """The success value; raises ``UnwrapError`` on ``Err``."""
+        raise NotImplementedError
 
-    # The unused local is used for type-hinting.
-    # noinspection PyUnusedLocal
-    def swap_err(self, err: type[F]) -> Result[T, F]:
-        """Assert-cast the error type.  Only valid when ``is_ok``; asserts otherwise."""
-        # frob:doc docs/result.md#swap_err-err_type---resultt-f
-        # frob:ticket T-0004
-        assert self.is_ok
-        # noinspection PyUnnecessaryCast
-        return cast(Result[T, F], self)
+    @property
+    def danger_err(self) -> E_co:
+        """The error value; raises ``UnwrapError`` on ``Ok``."""
+        raise NotImplementedError
 
-    # The unused local is used for type-hinting.
-    # noinspection PyUnusedLocal
-    def swap_ok(self, ok: type[V]) -> Result[V, E]:
-        """Assert-cast the success type.  Only valid when ``is_err``; asserts otherwise."""
-        # frob:doc docs/result.md#swap_ok-ok_type---resultv-e
-        # frob:ticket T-0004
-        assert self.is_err
-        # noinspection PyUnnecessaryCast
-        return cast(Result[V, E], self)
+    @property
+    def notes(self) -> tuple[str, ...]:
+        """Notes attached via :meth:`note`, oldest first; always ``()`` on ``Ok``."""
+        return ()
 
-    def __or__(self, func: Callable[[T], V]) -> Result[V, E]:
-        """Alias for :meth:`map`.  ``result | func`` transforms the success value."""
-        return self.map(func)
+    def is_ok_and(self, pred: Callable[[T_co], bool]) -> bool:
+        """``True`` when this is ``Ok`` and *pred* holds for its value."""
+        raise NotImplementedError
 
-    def __rshift__(self, func: Callable[[T], Result[V, F]]) -> Result[V, E | F]:
-        """Alias for :meth:`and_then`.  ``result >> func`` chains a fallible computation."""
-        return self.and_then(func)
+    def is_err_and(self, pred: Callable[[E_co], bool]) -> bool:
+        """``True`` when this is ``Err`` and *pred* holds for its error."""
+        raise NotImplementedError
+
+    def unwrap(self) -> T_co:
+        """Return the success value; raise ``UnwrapError(self)`` on ``Err``."""
+        raise NotImplementedError
+
+    def unwrap_err(self) -> E_co:
+        """Return the error value; raise ``UnwrapError(self)`` on ``Ok``."""
+        raise NotImplementedError
+
+    def unwrap_or(self, default: U) -> T_co | U:
+        """Return the success value, or *default* when this is ``Err``."""
+        raise NotImplementedError
+
+    def unwrap_or_else(self, fn: Callable[[E_co], U]) -> T_co | U:
+        """Return the success value, or ``fn(error)`` when this is ``Err``."""
+        raise NotImplementedError
+
+    def expect(self, msg: str) -> T_co:
+        """Like :meth:`unwrap`, prefixing the ``UnwrapError`` message with *msg*."""
+        raise NotImplementedError
+
+    def expect_err(self, msg: str) -> E_co:
+        """Like :meth:`unwrap_err`, prefixing the ``UnwrapError`` message with *msg*."""
+        raise NotImplementedError
+
+    def map(self, fn: Callable[[T_co], V]) -> "Result[V, E_co]":
+        """Apply *fn* to the success value; pass ``Err`` through unchanged."""
+        # frob:doc docs/result.md#mapfn---resultv-e
+        if self.is_err:
+            return self  # type: ignore[return-value]
+        return Ok(fn(self.danger_ok))
+
+    def map_err(self, fn: Callable[[E_co], F]) -> "Result[T_co, F]":
+        """Apply *fn* to the error value, preserving notes; ``Ok`` passes through."""
+        # frob:doc docs/result.md#map_errfn---resultt-f
+        if self.is_ok:
+            return self  # type: ignore[return-value]
+        return Err(fn(self.danger_err))._with_notes(self.notes)
+
+    def and_then(self, fn: Callable[[T_co], "Result[V, F]"]) -> "Result[V, E_co | F]":
+        """Chain a fallible computation; propagate the first error encountered."""
+        # frob:doc docs/result.md#and_thenfn---resultv-e--f
+        if self.is_err:
+            return self  # type: ignore[return-value]
+        return fn(self.danger_ok)
+
+    def or_else(self, fn: Callable[[E_co], "Result[T_co, F]"]) -> "Result[T_co, F]":
+        """Recover from an error by calling *fn* with the error value."""
+        # frob:doc docs/result.md#or_elsefn---resultt-f
+        if self.is_ok:
+            return self  # type: ignore[return-value]
+        return fn(self.danger_err)
+
+    def inspect(self, fn: Callable[[T_co], None]) -> "Result[T_co, E_co]":
+        """Call *fn* with the success value for side effects; return ``self``."""
+        # frob:doc docs/result.md#inspectfn---resultt-e
+        raise NotImplementedError
+
+    def inspect_err(self, fn: Callable[[E_co], None]) -> "Result[T_co, E_co]":
+        """Call *fn* with the error value for side effects; return ``self``."""
+        # frob:doc docs/result.md#inspect_errfn---resultt-e
+        raise NotImplementedError
+
+    def fold(self, on_ok: Callable[[T_co], U], on_err: Callable[[E_co], U]) -> U:
+        """Collapse to a single value: ``on_ok(value)`` or ``on_err(error)``."""
+        # frob:doc docs/result.md#foldon_ok-on_err---u
+        raise NotImplementedError
+
+    def to_option(self) -> "Option[T_co]":
+        """Convert to an :class:`Option`: ``Ok->Some``, ``Err->Nothing()``."""
+        # frob:doc docs/result.md#to_option---optiont
+        raise NotImplementedError
+
+    def note(self, msg: str) -> "Result[T_co, E_co]":
+        """Attach context to an ``Err``, leaving its payload alone; ``Ok`` no-ops."""
+        # frob:doc docs/result.md#notemsg---resultt-e
+        if self.is_ok:
+            return self
+        return Err(self.danger_err)._with_notes(self.notes + (msg,))
+
+    def swap_err(self, err: type[F]) -> "Result[T_co, F]":
+        """Assert-cast the error type. Only valid when ``is_ok``; else raises."""
+        # frob:doc docs/result.md#swap_errerr_type---resultt-f
+        if self.is_err:
+            raise UnwrapError(self)
+        return self  # type: ignore[return-value]
+
+    def swap_ok(self, ok: type[V]) -> "Result[V, E_co]":
+        """Assert-cast the success type. Only valid when ``is_err``; else raises."""
+        # frob:doc docs/result.md#swap_okok_type---resultv-e
+        if self.is_ok:
+            raise UnwrapError(self)
+        return self  # type: ignore[return-value]
+
+    def __or__(self, fn: Callable[[T_co], V]) -> "Result[V, E_co]":
+        """Alias for :meth:`map`. ``result | fn`` transforms the success value."""
+        return self.map(fn)
+
+    def __rshift__(self, fn: Callable[[T_co], "Result[V, F]"]) -> "Result[V, E_co | F]":
+        """Alias for :meth:`and_then`. ``result >> fn`` chains a fallible step."""
+        return self.and_then(fn)
+
+    def __iter__(self) -> Iterator[T_co]:
+        """Yield the success value once for ``Ok``; yield nothing for ``Err``."""
+        if self.is_ok:
+            yield self.danger_ok
+
+    def __bool__(self) -> bool:
+        """Always raises: truthiness of a ``Result`` is a common bug, not a query."""
+        raise TypeError("Result has no truth value; use is_ok/is_err or match")
+
+    def __copy__(self) -> "Result[T_co, E_co]":
+        """Return ``self``: a ``Result`` is immutable, so a shallow copy is a no-op."""
+        return self
+
+    def __deepcopy__(self, memo: dict[int, object]) -> "Result[T_co, E_co]":
+        """Return a new instance with a deep-copied payload; notes are preserved."""
+        raise NotImplementedError
+
+
+def _rebuild_err(error: Any, notes: tuple[str, ...]) -> "Err[Any, Any]":
+    """Reconstruct an ``Err`` with its notes for :func:`pickle.loads`."""
+    return Err(error)._with_notes(notes)
+
+
+# frob:doc docs/result.md#constructors
+# frob:ticket T-0009
+@final
+class Ok(Result[T_co, E_co]):
+    """The success variant of :class:`Result`, wrapping a value of type ``T``."""
+
+    __slots__ = ("_value",)
+    __match_args__ = ("value",)
+
+    def __init__(self, value: T_co, /) -> None:
+        """Wrap *value* as a successful result."""
+        self._value = value
+
+    @property
+    def value(self) -> T_co:
+        """The wrapped success value (also exposed via ``danger_ok``)."""
+        return self._value
+
+    @property
+    def is_ok(self) -> bool:
+        """Always ``True`` for ``Ok``."""
+        return True
+
+    @property
+    def is_err(self) -> bool:
+        """Always ``False`` for ``Ok``."""
+        return False
+
+    @property
+    def ok(self) -> T_co:
+        """The wrapped value."""
+        return self._value
+
+    @property
+    def err(self) -> None:
+        """Always ``None`` for ``Ok``."""
+        return None
+
+    @property
+    def danger_ok(self) -> T_co:
+        """The wrapped value."""
+        return self._value
+
+    @property
+    def danger_err(self) -> Any:
+        """Always raises ``UnwrapError``: ``Ok`` carries no error."""
+        raise UnwrapError(self)
+
+    def is_ok_and(self, pred: Callable[[T_co], bool]) -> bool:
+        """``True`` when *pred* holds for the wrapped value."""
+        return bool(pred(self._value))
+
+    def is_err_and(self, pred: Callable[[E_co], bool]) -> bool:
+        """Always ``False``: ``Ok`` has no error to test."""
+        return False
+
+    def unwrap(self) -> T_co:
+        """Return the wrapped value."""
+        return self._value
+
+    def unwrap_err(self) -> E_co:
+        """Always raises ``UnwrapError``: ``Ok`` carries no error."""
+        raise UnwrapError(self)
+
+    def unwrap_or(self, default: U) -> T_co | U:
+        """Return the wrapped value; *default* is never used."""
+        return self._value
+
+    def unwrap_or_else(self, fn: Callable[[E_co], U]) -> T_co | U:
+        """Return the wrapped value; *fn* is never called."""
+        return self._value
+
+    def expect(self, msg: str) -> T_co:
+        """Return the wrapped value; *msg* is never used."""
+        return self._value
+
+    def expect_err(self, msg: str) -> E_co:
+        """Always raises ``UnwrapError`` prefixed with *msg*: no error here."""
+        raise UnwrapError(self, msg)
+
+    def inspect(self, fn: Callable[[T_co], None]) -> "Ok[T_co, E_co]":
+        """Call *fn* with the wrapped value for side effects; return ``self``."""
+        fn(self._value)
+        return self
+
+    def inspect_err(self, fn: Callable[[E_co], None]) -> "Ok[T_co, E_co]":
+        """No-op: ``Ok`` has no error to inspect; return ``self``."""
+        return self
+
+    def fold(self, on_ok: Callable[[T_co], U], on_err: Callable[[E_co], U]) -> U:
+        """Return ``on_ok(value)``; *on_err* is never called."""
+        return on_ok(self._value)
+
+    def to_option(self) -> "Option[T_co]":
+        """Convert to :class:`~typani.option.Some` wrapping the value."""
+        # Local import: avoids a module-level cycle with typani.option.
+        from typani.option import Some
+
+        return Some(self._value)
+
+    def __eq__(self, other: object) -> bool:
+        """Equal to another ``Ok`` with an equal payload; notes are not compared."""
+        if not isinstance(other, Ok):
+            return NotImplemented
+        return bool(self._value == other._value)
+
+    def __ne__(self, other: object) -> bool:
+        """Inverse of :meth:`__eq__`."""
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result  # type: ignore[no-any-return]
+        return not result
+
+    def __hash__(self) -> int:
+        """Hash derived from the variant marker and the wrapped value."""
+        return hash((_OK_MARKER, self._value))
 
     def __repr__(self) -> str:
-        if self.is_ok:
-            return f"Ok({repr(self.danger_ok)})"
-        elif self.is_err:
-            return f"Err({repr(self.danger_err)})"
-        return super().__repr__()
+        """``Ok(<repr of value>)``."""
+        return f"Ok({self._value!r})"
 
     def __str__(self) -> str:
-        if self.is_ok:
-            return f"Ok({str(self.danger_ok)})"
-        elif self.is_err:
-            return f"Err({str(self.danger_err)})"
-        return super().__str__()
+        """``Ok(<str of value>)``."""
+        return f"Ok({self._value!s})"
+
+    def __reduce__(self) -> tuple[type["Ok[T_co, E_co]"], tuple[T_co]]:
+        """Pickle support: reconstruct via ``Ok(value)``."""
+        return (Ok, (self._value,))
+
+    def __deepcopy__(self, memo: dict[int, object]) -> "Ok[T_co, E_co]":
+        """Return a new ``Ok`` with a deep-copied value."""
+        return Ok(_copy.deepcopy(self._value, memo))
 
 
-# noinspection PyPep8Naming
 # frob:doc docs/result.md#constructors
-# frob:ticket T-0004
-def Ok(ok: T, /) -> Result[T, E]:
-    """Construct a successful :class:`Result` wrapping *ok*."""
-    return Result(ok=ok)
+# frob:ticket T-0009
+@final
+class Err(Result[T_co, E_co]):
+    """The failure variant of :class:`Result`, wrapping an error of type ``E``."""
 
+    __slots__ = ("_error", "_notes")
+    __match_args__ = ("error",)
 
-# noinspection PyPep8Naming
-# frob:doc docs/result.md#constructors
-# frob:ticket T-0004
-def Err(err: E, /) -> Result[T, E]:
-    """Construct a failed :class:`Result` wrapping *err*."""
-    return Result(err=err)
+    def __init__(self, error: E_co, /) -> None:
+        """Wrap *error* as a failed result with no notes attached."""
+        self._error = error
+        self._notes: tuple[str, ...] = ()
+
+    def _with_notes(self, notes: tuple[str, ...]) -> "Err[T_co, E_co]":
+        """Return ``self`` with *notes* installed; used by note()/map_err()/pickling."""
+        self._notes = notes
+        return self
+
+    @property
+    def error(self) -> E_co:
+        """The wrapped error value (also exposed via ``danger_err``)."""
+        return self._error
+
+    @property
+    def notes(self) -> tuple[str, ...]:
+        """Notes attached via :meth:`Result.note`, oldest first."""
+        return self._notes
+
+    @property
+    def is_ok(self) -> bool:
+        """Always ``False`` for ``Err``."""
+        return False
+
+    @property
+    def is_err(self) -> bool:
+        """Always ``True`` for ``Err``."""
+        return True
+
+    @property
+    def ok(self) -> None:
+        """Always ``None`` for ``Err``."""
+        return None
+
+    @property
+    def err(self) -> E_co:
+        """The wrapped error value."""
+        return self._error
+
+    @property
+    def danger_ok(self) -> Any:
+        """Always raises ``UnwrapError``: ``Err`` carries no success value."""
+        raise UnwrapError(self)
+
+    @property
+    def danger_err(self) -> E_co:
+        """The wrapped error value."""
+        return self._error
+
+    def is_ok_and(self, pred: Callable[[T_co], bool]) -> bool:
+        """Always ``False``: ``Err`` has no success value to test."""
+        return False
+
+    def is_err_and(self, pred: Callable[[E_co], bool]) -> bool:
+        """``True`` when *pred* holds for the wrapped error."""
+        return bool(pred(self._error))
+
+    def unwrap(self) -> T_co:
+        """Always raises ``UnwrapError``: ``Err`` carries no success value."""
+        raise UnwrapError(self)
+
+    def unwrap_err(self) -> E_co:
+        """Return the wrapped error."""
+        return self._error
+
+    def unwrap_or(self, default: U) -> T_co | U:
+        """Return *default*; the wrapped error is discarded."""
+        return default
+
+    def unwrap_or_else(self, fn: Callable[[E_co], U]) -> T_co | U:
+        """Return ``fn(error)``."""
+        return fn(self._error)
+
+    def expect(self, msg: str) -> T_co:
+        """Always raises ``UnwrapError`` prefixed with *msg*: no success value here."""
+        raise UnwrapError(self, msg)
+
+    def expect_err(self, msg: str) -> E_co:
+        """Return the wrapped error; *msg* is never used."""
+        return self._error
+
+    def inspect(self, fn: Callable[[T_co], None]) -> "Err[T_co, E_co]":
+        """No-op: ``Err`` has no success value to inspect; return ``self``."""
+        return self
+
+    def inspect_err(self, fn: Callable[[E_co], None]) -> "Err[T_co, E_co]":
+        """Call *fn* with the wrapped error for side effects; return ``self``."""
+        fn(self._error)
+        return self
+
+    def fold(self, on_ok: Callable[[T_co], U], on_err: Callable[[E_co], U]) -> U:
+        """Return ``on_err(error)``; *on_ok* is never called."""
+        return on_err(self._error)
+
+    def to_option(self) -> "Option[T_co]":
+        """Convert to :class:`~typani.option.Nothing`; the error is discarded."""
+        # Local import: avoids a module-level cycle with typani.option.
+        from typani.option import Nothing
+
+        return Nothing()
+
+    def __eq__(self, other: object) -> bool:
+        """Equal to another ``Err`` with an equal payload; notes are not compared."""
+        if not isinstance(other, Err):
+            return NotImplemented
+        return bool(self._error == other._error)
+
+    def __ne__(self, other: object) -> bool:
+        """Inverse of :meth:`__eq__`."""
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result  # type: ignore[no-any-return]
+        return not result
+
+    def __hash__(self) -> int:
+        """Hash derived from the variant marker and error payload (notes excluded)."""
+        return hash((_ERR_MARKER, self._error))
+
+    def __repr__(self) -> str:
+        """``Err(<repr>)``, or with notes ``Err(<repr>; note: a; note: b)``."""
+        base = f"Err({self._error!r})"
+        return self._render_notes(base)
+
+    def __str__(self) -> str:
+        """``Err(<str>)``, or with notes ``Err(<str>; note: a; note: b)``."""
+        base = f"Err({self._error!s})"
+        return self._render_notes(base)
+
+    def _render_notes(self, base: str) -> str:
+        """Append ``"; note: ..."`` segments for each attached note."""
+        if not self._notes:
+            return base
+        suffix = "".join(f"; note: {note}" for note in self._notes)
+        return base[:-1] + suffix + ")"
+
+    def __reduce__(
+        self,
+    ) -> tuple[
+        Callable[[E_co, tuple[str, ...]], "Err[T_co, E_co]"],
+        tuple[E_co, tuple[str, ...]],
+    ]:
+        """Pickle support: reconstruct via the module rebuild helper, notes kept."""
+        return (_rebuild_err, (self._error, self._notes))
+
+    def __deepcopy__(self, memo: dict[int, object]) -> "Err[T_co, E_co]":
+        """Return a new ``Err`` with a deep-copied error, preserving notes."""
+        return Err(_copy.deepcopy(self._error, memo))._with_notes(self._notes)
