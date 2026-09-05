@@ -280,7 +280,7 @@ Caught while confirming the 0.2.0 bump: the native extra's exact pin is part of 
 ```yaml
 id: T-0034
 title: 'bump_version tests: fixtures need the native pin the script now requires'
-state: in-progress
+state: done
 kind: bug
 origin: human
 created: '2026-09-05'
@@ -298,6 +298,9 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_bump_version.py::test_main_leaves_crate_files_absent_when_crate_missing
+- tests/test_bump_version.py::test_main_set_rejects_malformed_version
 designated_repro_test: null
 threat: null
 component: null
@@ -306,3 +309,19 @@ anchor_reason: null
 land_commit: null
 ```
 T-0033 made the bump script refuse a pyproject without a typani-core pin; the fixtures had none, so tests failed and the first failing state was pushed. Fixtures now carry the pin and every exact-text assertion covers the pin line.
+
+## Done report
+
+The pin refusal from T-0033 needs the pin present in every fixture and every exact-text assertion. The landing chain now refuses to commit on a red test result instead of tailing it.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_bump_version.py::test_main_leaves_crate_files_absent_when_crate_missing` (pytest node id, verified passing when recorded)
+- `tests/test_bump_version.py::test_main_set_rejects_malformed_version` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 2 passed (from 2 evidence id(s))
+- gates: 0 error(s), 1005 warning(s), 2 waived
+- error-findings: none (measured, zero errors)
