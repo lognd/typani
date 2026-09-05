@@ -126,3 +126,293 @@ acceptance: []
 threat: null
 ```
 The typani.strata pilot design model (first sibling-repo strata rollout, T-0150-style self-model exercise) has 12 flow nodes and 1 interface-level TEST003 gap with no frob:tests binding. TEST001/TEST003 are warn-severity per frob.toml's legacy-adoption baseline, matching COV001/TEST00x already warned there for src/typani/**. Deferred rather than fixed in the same pass as the model itself: writing property/unit tests against strata flow declarations (frob:tests kind="unit"/"integration") is new territory for this repo and should get its own scoped pass once the strata model has stabilized, not be rushed to silence warnings on first landing.
+
+<!-- ticket:T-0006 -->
+```yaml
+id: T-0006
+title: 'adopt frob scaffold apply: managed Makefile core shim, gitignore standards,
+  guard hooks'
+state: queued
+kind: feature
+origin: agent
+created: '2026-07-22'
+priority: medium
+blocked_by: []
+parent: null
+scope: []
+scope_changes: []
+evidence: []
+attachments: []
+acceptance: []
+threat: null
+component: null
+labels: []
+```
+Estate rollout from frob T-0736 (scaffold conformance, landed 2026-07-22): run frob scaffold apply in this repo to install the managed boilerplate blocks (Makefile core shim with the shared cargo target cache where natives exist, standard gitignore entries, worktree-lease + raw-merge guard hooks), then keep them current via frob doctor which now drift-checks managed blocks against the installed frob version. Requires frob >= 0.92.
+
+<!-- ticket:T-0007 -->
+```yaml
+id: T-0007
+title: 'typani 0.1: audit-driven redesign, native core, modernization'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: high
+parent: null
+tier: epic
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- docs/redesign-0.1.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Umbrella for the 0.1 line. Design record: docs/redesign-0.1.md (sections 1-3). Children carry the work.
+
+<!-- ticket:T-0008 -->
+```yaml
+id: T-0008
+title: 'modernize tooling: uv, ruff, ty, py.typed, CI, release, changelog, bump script'
+state: in-progress
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: high
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- pyproject.toml
+- Makefile
+- .gitignore
+- .github/**
+- scripts/**
+- CHANGELOG.md
+- src/typani/py.typed
+- mypy-py310.ini
+- frob.toml
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+docs/redesign-0.1.md section 2.7. Follow ../frob scaffold templates (src/frob/scaffold/data/shared/python and types/pyo3-library). Replace black+isort with ruff; ty primary checker (mypy oracle only); [dependency-groups] dev; Makefile keeps install/clean/upload/develop only.
+<!-- ticket:T-0009 -->
+```yaml
+id: T-0009
+title: 'Result/Option redesign: Ok/Err/Some/Nothing classes, unwrap+propagate, notes,
+  eq/hash/match/iter/pickle, catch'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: critical
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/result.py
+- src/typani/option.py
+- src/typani/_exceptions.py
+- src/typani/_propagate.py
+- src/typani/__init__.py
+- tests/**
+- docs/result.md
+- docs/option.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+docs/redesign-0.1.md sections 2.1-2.4 and 3. Pure-Python canonical implementation with __slots__, mypy strict + ty clean. This module is the spec the native core must match exactly.
+
+<!-- ticket:T-0010 -->
+```yaml
+id: T-0010
+title: 'typani-core: PyO3/maturin native Result/Option with pure-Python fallback and
+  parity tests'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: high
+blocked_by:
+- T-0009
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- crates/**
+- src/typani/_impl.py
+- src/typani/result.py
+- src/typani/option.py
+- tests/**
+- bench/**
+- docs/native.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+docs/redesign-0.1.md section 2.5. abi3-py310 frozen pyclasses; __class_getitem__, __match_args__, __reduce__, __eq__/__hash__/__iter__/__bool__; TYPANI_PURE=1 forces fallback; version-skew check; bench/ script with before/after numbers; full test matrix runs under both backends.
+
+<!-- ticket:T-0011 -->
+```yaml
+id: T-0011
+title: 'typani.lint: stdlib-ast misuse checker TYP001-TYP005'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: medium
+blocked_by:
+- T-0009
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/lint/**
+- tests/**
+- docs/lint.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+docs/redesign-0.1.md section 2.6. python -m typani.lint PATH...; exit 1 on TYP001-TYP003 findings; TYP004/TYP005 informational; --json output; frob [policy] recipe documented.
+
+<!-- ticket:T-0012 -->
+```yaml
+id: T-0012
+title: 'leaf modules pass: re-include singleton.py in graph (T-0001), fix ty diagnostics
+  (T-0002), examples on 0.1 idioms'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: medium
+blocked_by:
+- T-0009
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/error_set.py
+- src/typani/sum.py
+- src/typani/dispatch.py
+- src/typani/unit.py
+- src/typani/unreachable.py
+- src/typani/singleton.py
+- src/typani/singleton.pyi
+- frob.toml
+- pyproject.toml
+- tests/**
+- examples/**
+- docs/**
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+frob T-0024 fixed the @overload symref crash, so drop the [graph] exclude of singleton.py (T-0001). Resolve every ty diagnostic so check_skip_ty can go (T-0002). Keep the leaf surface minimal; update examples to the 0.1 idioms (propagate, match, notes).
+
+<!-- ticket:T-0013 -->
+```yaml
+id: T-0013
+title: 'docs and README: banner, professional README, module docs for 0.1 API, strata
+  model update, CHANGELOG'
+state: queued
+kind: docs
+origin: agent
+created: '2026-09-05'
+priority: high
+blocked_by:
+- T-0009
+- T-0010
+- T-0011
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- README.md
+- docs/**
+- design/typani.strata
+- CHANGELOG.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+NumPy-style banner at docs/assets/typani-banner.svg (ASCII-only). README: banner, badges, install (typani / typani[native]), 60-second tour using match + propagate + notes, backend table, lint, links. docs/*.md updated to the 0.1 surface; design/typani.strata gains nodes for _impl/_exceptions/_propagate/lint.
