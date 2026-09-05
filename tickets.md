@@ -121,3 +121,34 @@ The 0.2 propagate work and the community files left 24 gate errors: misread doc 
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 1 error(s), 1023 warning(s), 2 waived
 - error-findings: E501@/home/logan/projects/typani/src/typani/_propagate.py
+
+<!-- ticket:T-0031 -->
+```yaml
+id: T-0031
+title: 'propagate: remove dead _scope_check helper and wrap the AFFECT001 waiver line'
+state: in-progress
+kind: bug
+origin: agent
+created: '2026-09-05'
+priority: low
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/_propagate.py
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+After inlining the failure path, _scope_check had no callers (DEAD001) and the AFFECT001 waiver was a 293-character line (E501).
