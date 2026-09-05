@@ -117,7 +117,7 @@ def main() -> None:
             case Ok(value):
                 print(f"  OK -> {value}")
             case Err(err):
-                print(f"  ERR -> {err}  (description: {err.description!r})")
+                print(f"  ERR -> {err}")
 
 
 if __name__ == "__main__":
