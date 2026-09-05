@@ -174,7 +174,7 @@ Inlining the propagate failure path left its helper with no callers and a waiver
 ```yaml
 id: T-0032
 title: 'release 0.2.0: version bump, changelog date, TYP007 scope note'
-state: in-progress
+state: done
 kind: docs
 origin: human
 created: '2026-09-05'
@@ -197,6 +197,9 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- cmd:python3 -c "import re,pathlib; v=[re.search(r'\"([0-9.]+)\"', pathlib.Path(f).read_text()).group(1)
+  for f in ('src/typani/_version.py',)]; print('version literal', v)" exit=0 sha256=b9746b36bff1
 designated_repro_test: null
 threat: null
 component: null
@@ -205,3 +208,18 @@ anchor_reason: null
 land_commit: null
 ```
 Cut 0.2.0: lexically scoped propagate, error return trace, wrap_err, unwrap(err=, note=), TYP006/TYP007. The frob consumer confirmed the envelope and scoping; its 17-vs-93 question is answered in docs/lint.md.
+
+## Done report
+
+0.2.0 is cut on the consumer's confirmation that the envelope and the scoping rule are what it needed; the one open question, TYP007's 17 against a hand count of 93, is a scope statement now written into the rule's docs.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `cmd:python3 -c "import re,pathlib; v=[re.search(r'\"([0-9.]+)\"', pathlib.Path(f).read_text()).group(1) for f in ('src/typani/_version.py',)]; print('version literal', v)" exit=0 sha256=b9746b36bff1` (cmd evidence, exit=0)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 0 error(s), 1007 warning(s), 2 waived
+- error-findings: none (measured, zero errors)
