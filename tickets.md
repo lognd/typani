@@ -668,7 +668,7 @@ Standard community set in the uv/ruff/ty/pytest style: LICENSE (missing until no
 id: T-0026
 title: 'release.yml: interpreter lookup under set -e and Intel macOS leg on an Intel
   runner'
-state: in-progress
+state: done
 kind: docs
 origin: human
 created: '2026-09-05'
@@ -686,6 +686,10 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- cmd:python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/release.yml'));
+  m=d['jobs']['build-native']['strategy']['matrix']['include']; print([(e['os'],e['target'])
+  for e in m])" exit=0 sha256=ae3cd5962725
 designated_repro_test: null
 threat: null
 component: null
@@ -694,3 +698,18 @@ anchor_reason: null
 land_commit: null
 ```
 Second dispatch: ls of two candidate interpreter paths under set -e exits 2 on Linux and Windows; macos-latest is arm64 so the cross-built x86_64 wheel cannot be installed for the smoke test. Branch on the venv layout and run the Intel leg on macos-13.
+
+## Done report
+
+The smoke step's interpreter lookup and the Intel macOS runner were the last two release blockers; both fixed without touching what is built.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `cmd:python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/release.yml')); m=d['jobs']['build-native']['strategy']['matrix']['include']; print([(e['os'],e['target']) for e in m])" exit=0 sha256=ae3cd5962725` (cmd evidence, exit=0)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 13 error(s), 984 warning(s), 0 waived
+- error-findings: DOC006@CODE_OF_CONDUCT.md, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
