@@ -223,7 +223,7 @@ frob's ty stage (multi-platform run) reported an unresolved-attribute on the mat
 
 ## Done report
 
-frob's ty stage runs per platform and surfaced three diagnostics the plain project ty run did not: the example now prints str(err) (which already includes the description) and two unused ty:ignore directives are gone.
+frob's per-platform ty stage and the plain ty run disagreed about two ty:ignore directives in option.py; the real fix is a method-level TypeVar for from_optional and or_else so neither checker needs a suppression, mirrored into the native stub, plus the example printing str(err).
 
 ### Changed
 (no changed files detected)
@@ -233,7 +233,7 @@ frob's ty stage runs per platform and surfaced three diagnostics the plain proje
 
 ### Captured claims
 - tests: 1 passed (from 1 evidence id(s))
-- gates: 0 error(s), 942 warning(s), 0 waived
+- gates: 0 error(s), 941 warning(s), 0 waived
 - error-findings: none (measured, zero errors)
 
 ## Reopen log
