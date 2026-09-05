@@ -253,3 +253,20 @@ def test_main_set_rejects_malformed_version(
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "0.1.0"\n'
     )
+
+
+# frob:tests scripts/bump_version.py::_write_pyproject_version
+def test_write_pyproject_version_moves_the_native_pin(tmp_path: Path) -> None:
+    """The typani-core exact pin must move with the version (release coupling)."""
+    module = _load_module()
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "typani"\nversion = "0.1.0"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.1.0"]\n'
+    )
+    module.PYPROJECT = pyproject
+    module._write_pyproject_version("0.2.0")
+    text = pyproject.read_text()
+    assert 'version = "0.2.0"' in text
+    assert 'native = ["typani-core==0.2.0"]' in text
+    assert "0.1.0" not in text

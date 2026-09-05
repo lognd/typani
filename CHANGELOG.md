@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `.traced(...)` -- no longer guaranteed to be the identical (`is`)
   object; compare by value (T-0028).
 
-## [0.1.0] - unreleased
+## [0.1.0] - 2026-09-05
 
 ### Added
 

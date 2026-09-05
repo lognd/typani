@@ -27,6 +27,7 @@ PYPROJECT = ROOT / "pyproject.toml"
 INIT_PY = ROOT / "src" / "typani" / "_version.py"
 NATIVE_PYPROJECT = ROOT / "crates" / "typani-core" / "pyproject.toml"
 NATIVE_CARGO_TOML = ROOT / "crates" / "typani-core" / "Cargo.toml"
+NATIVE_PIN_RE = re.compile(r'"typani-core==[0-9][^"]*"')
 
 VERSION_RE = re.compile(r"^version = \"(\d+)\.(\d+)\.(\d+)\"", re.M)
 INIT_VERSION_RE = re.compile(r'^__version__ = "[^"]+"', re.M)
@@ -61,8 +62,16 @@ def _write_pyproject_version(new: str) -> None:
     if count != 1:
         logger.error("failed to find version in %s", PYPROJECT)
         raise SystemExit(1)
+    # The native extra pins typani-core to typani's OWN version (exact, never
+    # a range); it moves in lockstep or the extra resolves a skewed core.
+    text, pins = NATIVE_PIN_RE.subn(f'"typani-core=={new}"', text)
+    if pins != 1:
+        logger.error(
+            "expected exactly one typani-core== pin in %s, found %d", PYPROJECT, pins
+        )
+        raise SystemExit(1)
     PYPROJECT.write_text(text)
-    logger.info("updated %s", PYPROJECT)
+    logger.info("updated %s (version and native pin)", PYPROJECT)
 
 
 def _write_init_version(new: str) -> None:

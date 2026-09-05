@@ -25,7 +25,7 @@ pydantic = ["pydantic>=2.0"]
 # together, so the version string itself is the contract. Without this
 # extra, typani still installs and runs in pure-Python mode. Unpublished
 # until T-0010 lands; do not add to `uv sync --all-extras` until then.
-native = ["typani-core==0.1.0"]
+native = ["typani-core==0.2.0"]
 
 [dependency-groups]
 dev = [
