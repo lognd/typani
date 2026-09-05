@@ -331,7 +331,7 @@ The pin refusal from T-0033 needs the pin present in every fixture and every exa
 id: T-0035
 title: 'release 0.2.1: trove classifiers and keywords so PyPI reports supported Python
   versions'
-state: in-progress
+state: done
 kind: docs
 origin: human
 created: '2026-09-05'
@@ -361,6 +361,8 @@ scope_changes:
   reason: absolute links so the PyPI-rendered README resolves
   actor: logan
   at: '2026-09-05'
+evidence:
+- cmd:grep -c Programming pyproject.toml exit=0 sha256=06e9d52c1720
 designated_repro_test: null
 threat: null
 component: null
@@ -378,7 +380,7 @@ Metadata-only patch: classifiers and keywords on both distributions so badge ser
 (no changed files detected)
 
 ### Evidence
-(no evidence recorded)
+- `cmd:grep -c Programming pyproject.toml exit=0 sha256=06e9d52c1720` (cmd evidence, exit=0)
 
 ### Captured claims
 - tests: 0 passed (from 0 evidence id(s))
