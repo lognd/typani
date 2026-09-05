@@ -275,3 +275,34 @@ Caught while confirming the 0.2.0 bump: the native extra's exact pin is part of 
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 0 error(s), 1003 warning(s), 2 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0034 -->
+```yaml
+id: T-0034
+title: 'bump_version tests: fixtures need the native pin the script now requires'
+state: in-progress
+kind: bug
+origin: human
+created: '2026-09-05'
+priority: critical
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- tests/test_bump_version.py
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+T-0033 made the bump script refuse a pyproject without a typani-core pin; the fixtures had none, so tests failed and the first failing state was pushed. Fixtures now carry the pin and every exact-text assertion covers the pin line.
