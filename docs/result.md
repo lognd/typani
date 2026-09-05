@@ -232,7 +232,7 @@ def g(...) -> Result[T, E]: ...
 | Parameter | Type | Meaning |
 |-----------|------|---------|
 | `func` | callable | The function to wrap. Omit it (factory form) to pass keyword options. |
-| `on_error` | `Callable[[Callable, Result | Option], object] | None` | Called as `on_error(func, container)` with the decorated function and the container about to be returned, once per propagated hop, after the trace entry is appended and before the return. Use it at a subsystem boundary to log at WARNING, count failures, or attach a note. An exception raised by the hook propagates to the caller instead of the container being returned. |
+| `on_error` | `Callable[[Callable, Result \| Option], object] \| None` | Called as `on_error(func, container)` with the decorated function and the container about to be returned, once per propagated hop, after the trace entry is appended and before the return. Use it at a subsystem boundary to log at WARNING, count failures, or attach a note. An exception raised by the hook propagates to the caller instead of the container being returned. |
 
 Returns the wrapped function with `functools.wraps` metadata and
 `__wrapped__` set. Sync and `async def` functions are both accepted; the
