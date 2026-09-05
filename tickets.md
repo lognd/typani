@@ -228,7 +228,7 @@ Cut 0.2.0: lexically scoped propagate, error return trace, wrap_err, unwrap(err=
 ```yaml
 id: T-0033
 title: bump_version.py did not move the typani-core exact pin in the native extra
-state: in-progress
+state: done
 kind: bug
 origin: human
 created: '2026-09-05'
@@ -250,6 +250,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_bump_version.py::test_write_pyproject_version_moves_the_native_pin
 designated_repro_test: null
 threat: null
 component: null
@@ -258,3 +260,18 @@ anchor_reason: null
 land_commit: null
 ```
 The 0.2.0 bump left native = [typani-core==0.1.0], which would have published typani 0.2.0 pinning the wrong core; the skew guard would have fallen back to pure silently for every typani[native] user. The script now rewrites the pin and refuses if it is not found exactly once; a test covers it. Caught before the release dispatch.
+
+## Done report
+
+Caught while confirming the 0.2.0 bump: the native extra's exact pin is part of the version coupling and the script skipped it. Fixed with a refusal when the pin is missing and a test that asserts the rewritten line.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_bump_version.py::test_write_pyproject_version_moves_the_native_pin` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 0 error(s), 1003 warning(s), 2 waived
+- error-findings: none (measured, zero errors)
