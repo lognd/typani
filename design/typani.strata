@@ -7,23 +7,27 @@
 // and it exists to bug-hunt strata itself against a codebase it was not
 // built against.
 //
-// Every node's `code` glob was chosen by reading src/typani/*.py directly
-// (9 files, ~1000 lines total, see tickets.md T-0001/T-0002 for the two
-// pre-existing frob adoption gaps this model does not re-litigate). Every
-// flow below is a real `from typani.X import ...` edge, confirmed by
-// grepping each file's import block -- no aspirational edges.
+// Every node's `code` glob was chosen by reading src/typani/*.py and
+// src/typani/lint/*.py directly (T-0013 extended the original 9-file/
+// ~1000-line survey with the propagation/backend-selection/version/lint
+// modules split out during the 0.1 redesign; see tickets.md
+// T-0001/T-0002 for the two pre-existing frob adoption gaps this model
+// does not re-litigate). Every flow below is a real
+// `from typani.X import ...` edge, confirmed by grepping each file's
+// import block (top-level AND the lazy imports inside method bodies used
+// to break Result<->Option/exceptions cycles) -- no aspirational edges.
 //
 // Capability surface: a direct grep of src/typani/ for subprocess/
-// os.system/open(/socket/requests/urllib/eval(/exec(/__import__/
-// os.environ found ZERO matches. typani does no filesystem, network,
-// process, or dynamic-eval I/O anywhere -- this is a pure in-memory
-// value-type library (Result/Option/Sum/ErrorSet/Unit/Singleton/
-// dispatch/Unreachable). Every node below therefore has NO `may`
-// declarations at all. That absence is the honest, deliberately-proven
-// claim of this model, not an oversight: `frob sys audit`'s SYS101
-// self-conformance check would flag a stale `may` the moment any node
-// gained an unmeasured capability, so the near-zero case is exactly as
-// falsifiable as a populated one.
+// os.system/open(/socket/requests/urllib/eval(/exec(/__import__ found
+// ZERO matches -- typani does no filesystem, network, process, or
+// dynamic-eval I/O anywhere. Two narrow exceptions exist and are
+// declared below rather than hidden: `_impl.py` reads `TYPANI_PURE`
+// from `os.environ` to select the backend (`may "env.read"`), and
+// `lint/__init__.py` reads `*.py` source files from disk to lint them
+// (`may "fs-read"`). Every other node still declares NO `may`
+// capabilities at all -- `frob sys audit`'s self-conformance check
+// (SYS103/SYS106) would flag a stale `may`, or a missing one, the
+// moment any node's code diverged from what is declared here.
 
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
@@ -82,19 +86,29 @@ node error_set_mod : trusted {
     code "src/typani/error_set.py";
 }
 
-// src/typani/option.py: Option/Some/Nothing, built on Unit
-// (_SOME_UNIT subclasses Unit).
+// src/typani/option.py: Option/Some/Nothing. T-0009 dropped the Unit
+// dependency (no `from typani.unit import` remains in this file);
+// imports _exceptions (UnwrapError) at module scope, and result.py
+// (Ok/Err/Result) both under TYPE_CHECKING and as lazy in-method imports
+// (ok_or/ok_or_else, and the native-backend rebind block) to avoid a
+// module-level import cycle with result.py.
 // frob:doc docs/option.md#option
 // frob:ticket T-0005
+// frob:ticket T-0013
 node option_mod : trusted {
     clearance Public;
     code "src/typani/option.py";
 }
 
-// src/typani/result.py: Result/Ok/Err, built on Unit (_OK_UNIT,
-// _EMPTY_UNIT subclass Unit).
+// src/typani/result.py: Result/Ok/Err. T-0009 dropped the Unit
+// dependency (no `from typani.unit import` remains in this file);
+// imports _exceptions (UnwrapError) at module scope, and option.py
+// (Some/Nothing) both under TYPE_CHECKING and as lazy in-method imports
+// (Ok.to_option/Err.to_option, and the native-backend rebind block) to
+// avoid a module-level import cycle with option.py.
 // frob:doc docs/result.md#result
 // frob:ticket T-0005
+// frob:ticket T-0013
 node result_mod : trusted {
     clearance Public;
     code "src/typani/result.py";
@@ -122,54 +136,194 @@ node singleton_mod : trusted {
     code "src/typani/singleton.py";
 }
 
+// src/typani/_exceptions.py: UnwrapError, the AssertionError subclass
+// raised by every unwrap()/danger_* misuse. Carries the offending
+// Result/Option in `.container`, so its `_default_message` helper
+// imports Ok/Err/Some/Nothing (lazily, inside the method, to avoid a
+// module-level cycle) purely to render a variant-aware message string --
+// no construction, no mutation.
+// frob:doc docs/result.md#unwraperror
+// frob:ticket T-0013
+node exceptions_mod : trusted {
+    clearance Public;
+    code "src/typani/_exceptions.py";
+}
+
+// src/typani/_propagate.py: propagate()/catching(), the Rust-`?`-style
+// early-return decorator and the exception-to-Result boundary decorator.
+// `propagate` catches UnwrapError and returns its `.container`;
+// `catching` wraps a function in `Result.catch` semantics.
+// frob:doc docs/result.md#propagation
+// frob:ticket T-0013
+node propagate_mod : trusted {
+    clearance Public;
+    code "src/typani/_propagate.py";
+}
+
+// src/typani/_impl.py: native_active()/backend_name(), the backend
+// selection between the typani_core PyO3 extension and the pure-Python
+// classes in result.py/option.py. Reads the TYPANI_PURE environment
+// variable via os.environ.get, hence the sole `may "env.read"` grant in
+// this model -- no other node touches the environment.
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+node impl_mod : trusted {
+    clearance Public;
+    code "src/typani/_impl.py";
+    may "env.read" via "src/typani/_impl.py";
+}
+
+// src/typani/_version.py: the single-source-of-truth __version__
+// literal, split out of __init__.py so _impl.py can read it without
+// importing typani's full public surface (avoiding a circular import
+// between typani/__init__.py and typani/_impl.py) and so
+// scripts/bump_version.py has one literal to rewrite. Leaf: imports
+// nothing else in typani.
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+node version_mod : trusted {
+    clearance Public;
+    code "src/typani/_version.py";
+}
+
+// src/typani/lint/**: the stdlib-ast misuse checker (python -m
+// typani.lint). Deliberately never imported from typani/__init__.py --
+// an opt-in dev tool, not part of the runtime package -- so it has no
+// inbound flow from `api` and no outbound flow into any other node in
+// this model; it imports nothing from typani proper (only stdlib ast/
+// argparse/json/pathlib/logging/dataclasses/re plus its own
+// submodules). check_paths/_iter_python_files read `*.py` source files
+// from disk via Path.read_text/Path.rglob to lint them, hence the sole
+// other `may` grant in this model.
+// frob:doc docs/lint.md#check_paths
+// frob:ticket T-0013
+node lint : trusted {
+    clearance Public;
+    code "src/typani/lint/**";
+    may "fs-read" via "src/typani/lint/__init__.py";
+}
+
 // -- flows ------------------------------------------------------------
 
 // api re-exports every leaf module's public names (__init__.py's import
-// block, one line per module).
+// block, one line per module). Every flow below is `attr local;`: this
+// is a single in-process package with no process/service boundary
+// anywhere in it (module import, not RPC), so REL200's deny-by-default
+// timeout obligation is an explicit, honest exemption rather than a
+// silently-missing one.
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_unit : api -> unit { label Public; }
+flow f_api_unit : api -> unit { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_unreachable : api -> unreachable_mod { label Public; }
+flow f_api_unreachable : api -> unreachable_mod { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_dispatch : api -> dispatch_mod { label Public; }
+flow f_api_dispatch : api -> dispatch_mod { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_error_set : api -> error_set_mod { label Public; }
+flow f_api_error_set : api -> error_set_mod { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_option : api -> option_mod { label Public; }
+flow f_api_option : api -> option_mod { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_result : api -> result_mod { label Public; }
+flow f_api_result : api -> result_mod { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_sum : api -> sum_mod { label Public; }
+flow f_api_sum : api -> sum_mod { label Public; attr local; }
 // frob:doc docs/index.md#typani-documentation
 // frob:ticket T-0005
-flow f_api_singleton : api -> singleton_mod { label Public; }
+flow f_api_singleton : api -> singleton_mod { label Public; attr local; }
+// __init__.py: `from typani._exceptions import UnwrapError`.
+// frob:doc docs/result.md#unwraperror
+// frob:ticket T-0013
+flow f_api_exceptions : api -> exceptions_mod { label Public; attr local; }
+// __init__.py: `from typani._impl import backend_name, native_active`.
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+flow f_api_impl : api -> impl_mod { label Public; attr local; }
+// __init__.py: `from typani._propagate import catching, propagate`.
+// frob:doc docs/result.md#propagation
+// frob:ticket T-0013
+flow f_api_propagate : api -> propagate_mod { label Public; attr local; }
+// __init__.py: `from typani._version import __version__`.
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+flow f_api_version : api -> version_mod { label Public; attr local; }
 
 // unreachable.py: `from typani.unit import Unit`.
 // frob:doc docs/unreachable.md#unreachable
 // frob:ticket T-0005
-flow f_unreachable_unit : unreachable_mod -> unit { label Public; }
-
-// option.py: `from typani.unit import Unit`.
-// frob:doc docs/option.md#option
-// frob:ticket T-0005
-flow f_option_unit : option_mod -> unit { label Public; }
-
-// result.py: `from typani.unit import Unit`.
-// frob:doc docs/result.md#result
-// frob:ticket T-0005
-flow f_result_unit : result_mod -> unit { label Public; }
+flow f_unreachable_unit : unreachable_mod -> unit { label Public; attr local; }
 
 // sum.py: `from typani.dispatch import dispatch`.
 // frob:doc docs/sum.md#sum
 // frob:ticket T-0005
-flow f_sum_dispatch : sum_mod -> dispatch_mod { label Public; }
+flow f_sum_dispatch : sum_mod -> dispatch_mod { label Public; attr local; }
+
+// _exceptions.py: `from typani.option import Option` (TYPE_CHECKING) and
+// `from typani.option import Nothing, Some` (lazy, inside
+// _default_message, to render a variant-aware error message).
+// frob:doc docs/result.md#unwraperror
+// frob:ticket T-0013
+flow f_exceptions_option : exceptions_mod -> option_mod { label Public; attr local; }
+
+// _exceptions.py: `from typani.result import Result` (TYPE_CHECKING) and
+// `from typani.result import Err, Ok` (lazy, inside _default_message).
+// frob:doc docs/result.md#unwraperror
+// frob:ticket T-0013
+flow f_exceptions_result : exceptions_mod -> result_mod { label Public; attr local; }
+
+// _propagate.py: `from typani._exceptions import UnwrapError`.
+// frob:doc docs/result.md#propagation
+// frob:ticket T-0013
+flow f_propagate_exceptions : propagate_mod -> exceptions_mod { label Public; attr local; }
+
+// _propagate.py: `from typani.result import Err, Ok, Result`.
+// frob:doc docs/result.md#propagation
+// frob:ticket T-0013
+flow f_propagate_result : propagate_mod -> result_mod { label Public; attr local; }
+
+// result.py: `from typani._exceptions import UnwrapError`.
+// frob:doc docs/result.md#result
+// frob:ticket T-0013
+flow f_result_exceptions : result_mod -> exceptions_mod { label Public; attr local; }
+
+// result.py: `from typani.option import Option` (TYPE_CHECKING), plus
+// lazy `from typani.option import Some` (Ok.to_option) and
+// `from typani.option import Nothing` (Err.to_option).
+// frob:doc docs/result.md#to_option---optiont
+// frob:ticket T-0013
+flow f_result_option : result_mod -> option_mod { label Public; attr local; }
+
+// result.py: `from typani._impl import native_active as _native_active`
+// (module-bottom native-backend rebind block, not TYPE_CHECKING).
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+flow f_result_impl : result_mod -> impl_mod { label Public; attr local; }
+
+// option.py: `from typani._exceptions import UnwrapError`.
+// frob:doc docs/option.md#option
+// frob:ticket T-0013
+flow f_option_exceptions : option_mod -> exceptions_mod { label Public; attr local; }
+
+// option.py: `from typani.result import Result` (TYPE_CHECKING), plus
+// lazy `from typani.result import Err, Ok` in ok_or/ok_or_else.
+// frob:doc docs/option.md#ok_orerr---resultt-e
+// frob:ticket T-0013
+flow f_option_result : option_mod -> result_mod { label Public; attr local; }
+
+// option.py: `from typani._impl import native_active as _native_active`
+// (module-bottom native-backend rebind block, not TYPE_CHECKING).
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+flow f_option_impl : option_mod -> impl_mod { label Public; attr local; }
+
+// _impl.py: `from typani._version import __version__ as _TYPANI_VERSION`.
+// frob:doc docs/native.md#backend-selection
+// frob:ticket T-0013
+flow f_impl_version : impl_mod -> version_mod { label Public; attr local; }
 
 // -- claims ------------------------------------------------------------
 
@@ -203,3 +357,10 @@ assert c_result_isolated_from_singleton noflow result_mod -> singleton_mod
 // frob:doc docs/error_set.md#errorset
 // frob:ticket T-0005
 assert c_error_set_isolated noflow error_set_mod -> unit
+
+// lint is deliberately never imported from typani/__init__.py or any
+// other node in this model -- it is an opt-in dev tool invoked as
+// `python -m typani.lint`, not part of the runtime import graph.
+// frob:doc docs/lint.md#check_paths
+// frob:ticket T-0013
+assert c_lint_isolated_from_api noflow api -> lint

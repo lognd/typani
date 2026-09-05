@@ -109,9 +109,14 @@ Err("outer").and_then(lambda x: Ok(x + 1))   # Err('outer')
 Recover from an error. If `self` is `Err`, calls `fn(err)` and returns its result.
 If `self` is `Ok`, returns `self` unchanged.
 
-### `inspect(fn) -> Result[T, E]` / `inspect_err(fn) -> Result[T, E]`
+### `inspect(fn) -> Result[T, E]`
 
-Run a side-effectful function on the success/error value without transforming it.
+Run a side-effectful function on the success value without transforming it.
+Returns `self` unchanged regardless.
+
+### `inspect_err(fn) -> Result[T, E]`
+
+Run a side-effectful function on the error value without transforming it.
 Returns `self` unchanged regardless.
 
 ### `fold(on_ok, on_err) -> U`
@@ -133,6 +138,8 @@ Assert-cast the success type. Only valid when `is_err`; raises `UnwrapError`
 otherwise.
 
 ## Notes
+
+### `note(msg) -> Result[T, E]`
 
 An `Err` can carry free-text context describing where it happened, without
 touching the error payload itself (so `is`/`==` comparisons against `ErrorSet`
@@ -190,6 +197,8 @@ never via a bare `assert` -- so it is never stripped by `python -O`. Attributes:
 `message` to `expect`/`expect_err` prefixes it: `f"{message}: {default}"`.
 
 ## `catch`
+
+### `catch(fn, *exceptions, on_error) -> Result[T, E]`
 
 ```python
 Result.catch(fn, *exceptions, on_error) -> Result[T, E]

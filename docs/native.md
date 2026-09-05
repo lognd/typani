@@ -8,7 +8,7 @@ dependency: every public behavior -- methods, dunders, error types, error
 implementations, and typani runs correctly with only the pure-Python
 package installed.
 
-<!-- frob:doc docs/native.md#native-core -->
+<!-- frob:doc docs/native.md#native-core-t-0010 -->
 <!-- frob:ticket T-0010 -->
 
 ## Install
@@ -33,7 +33,8 @@ decides once per process, at import time:
    `ImportError` (the `native` extra was never installed), it falls back
    to pure-Python.
 3. If importable, `typani_core.__version__` must exactly equal typani's
-   own `__version__` (`typani._version.__version__`). `typani-core` is
+   own `__version__` value (defined once in `src/typani/_version.py`).
+   `typani-core` is
    pinned `==` (not `>=`/`~=`) to typani's version in `pyproject.toml`'s
    `native` extra precisely because it is ABI-coupled: a mismatched
    native extension is worse than none. A mismatch logs a `WARNING`

@@ -1,344 +1,248 @@
+<p align="center"><img src="docs/assets/typani-banner.svg" alt="typani: typed value types for Python" width="100%"/></p>
+
 # typani
 
-A small collection of utility types for Python 3.10+, extracted from real projects.
-Inspired by Rust's `Result`/`Option`, Zig's error sets, and functional pipelines.
+typani is a small library of typed value types for Python: a Rust-shaped
+`Result[T, E]` and `Option[T]`, a Zig-shaped `ErrorSet`, propagation via
+`unwrap()` and `@propagate`, an optional Rust-accelerated core, and a
+misuse lint that catches the ways these types get called wrong in real
+codebases. It is for codebases that treat failure as a value instead of
+an exception that might or might not be caught somewhere upstream.
+Requires Python 3.10+.
 
-```
+[![PyPI version](https://img.shields.io/pypi/v/typani)](https://pypi.org/project/typani/)
+[![Python versions](https://img.shields.io/pypi/pyversions/typani)](https://pypi.org/project/typani/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
+[![CI](https://github.com/lognd/typani/actions/workflows/ci.yml/badge.svg)](https://github.com/lognd/typani/actions/workflows/ci.yml)
+[![typed: py.typed](https://img.shields.io/badge/typed-py.typed-brightgreen)](#type-checking)
+
+## Install
+
+```bash
 pip install typani
+# or
+uv add typani
 ```
 
-Pydantic integration (`SingletonModel`) is optional:
-
+```bash
+pip install "typani[native]"     # optional Rust-accelerated core
+pip install "typani[pydantic]"   # SingletonModel (pydantic BaseModel + singleton)
 ```
-pip install typani[pydantic]
-```
 
----
-
-## `Result[T, E]` -- explicit success or failure
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/result.md)
-
-Tired of `try/except` chains that silently swallow errors, or functions that return
-`None` and leave the caller guessing why?  `Result` makes the failure path a
-first-class value.
+## Sixty-second tour
 
 ```python
-from typani import Ok, Err, Result
+import json
+import tempfile
+from pathlib import Path
 
-def parse_port(s: str) -> Result[int, str]:
-    try:
-        port = int(s)
-    except ValueError:
-        return Err(f"{s!r} is not a number")
-    if not (1 <= port <= 65535):
-        return Err(f"{port} is out of range 1-65535")
-    return Ok(port)
+from typani import ErrorSet, Ok, Err, Result, Option, propagate
+
+
+class ConfigError(ErrorSet):
+    NotFound = "config file does not exist"
+    BadJson = "config file is not valid JSON"
+    MissingHost = "config is missing the 'host' key"
+
+
+def read_text(path: Path) -> Result[str, ConfigError]:
+    return Result.catch(
+        lambda: path.read_text(),
+        FileNotFoundError,
+        on_error=lambda exc: ConfigError.NotFound,
+    )
+
+
+def parse_json(text: str) -> Result[dict, ConfigError]:
+    return Result.catch(
+        lambda: json.loads(text),
+        json.JSONDecodeError,
+        on_error=lambda exc: ConfigError.BadJson,
+    )
+
+
+@propagate
+def load_config(path: Path) -> Result[dict, ConfigError]:
+    text = read_text(path).note(f"while reading {path.name}").unwrap()
+    data = parse_json(text).note(f"while parsing {path.name}").unwrap()
+    return Ok(data)
+
+
+def host_of(data: dict) -> Option[str]:
+    return Option.from_optional(data.get("host"))
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    config_path = Path(tmp) / "config.json"
+    config_path.write_text('{"host": "localhost", "port": 8080}')
+
+    result = load_config(config_path)
+    match result:
+        case Ok(data):
+            print(f"loaded config: {data}")
+        case Err(error):
+            print(f"failed to load config: {error}")
+
+    host = host_of(result.unwrap_or({})).ok_or(ConfigError.MissingHost)
+    print(f"host: {host.unwrap_or('unknown')}")
+
+    missing = load_config(Path(tmp) / "missing.json")
+    match missing:
+        case Ok(data):
+            print(f"loaded config: {data}")
+        case Err(error):
+            print(f"failed to load config: {error}")
+            for note in missing.notes:
+                print(f"  note: {note}")
 ```
 
-The real power is chaining -- build a pipeline without nesting:
-
-```python
-from typani import Ok, Err, Result
-
-def read_env(key: str) -> Result[str, str]:
-    import os
-    val = os.getenv(key)
-    return Ok(val) if val is not None else Err(f"missing env var {key!r}")
-
-def parse_int(s: str) -> Result[int, str]:
-    return Ok(int(s)) if s.isdigit() else Err(f"not an integer: {s!r}")
-
-port: Result[int, str] = (
-    read_env("PORT")         # Result[str, str]
-    >> parse_int             # Result[int, str]  -- and_then
-    | (lambda p: p * 2)     # Result[int, str]  -- map (hypothetical transform)
-)
-
-match port:
-    case _ if port.is_ok:
-        print(f"port is {port.ok}")
-    case _:
-        print(f"error: {port.err}")
+```
+loaded config: {'host': 'localhost', 'port': 8080}
+host: localhost
+failed to load config: NotFound: config file does not exist
+  note: while reading missing.json
 ```
 
-`|` is `map` (transform the success value), `>>` is `and_then` (chain a fallible
-step).  Errors short-circuit the chain automatically -- no `if result.is_err: return
-result` noise at every step.
+`Result.catch` is the exception-to-`Result` boundary; `.note()` attaches
+context to an `Err` without touching its payload; `unwrap()` inside a
+`@propagate` function returns the offending `Result` from the enclosing
+function on failure instead of raising, giving Rust `?`/Zig `try`-style
+early return; `match Ok(v)`/`case Err(e)` narrows the variant; `Option`
+covers the "value or nothing" half of the same idea. See
+[docs/result.md](docs/result.md) and [docs/option.md](docs/option.md) for
+the full API.
 
----
+## Why this shape
 
-## `Option[T]` -- explicit presence or absence
+`docs/redesign-0.1.md` traces the 0.1 API to a usage audit of a 649-file
+consumer codebase, not to taste. The dominant idiom there -- 651 exact
+instances of three lines of boilerplate per fallible call (`if
+loaded.is_err: return Err(loaded.danger_err)` then `queue =
+loaded.danger_ok`) -- exists because the combinator API was there but
+nothing made the early-return path shorter than hand-writing it; `unwrap()`
+plus `@propagate` closes that gap directly. The same audit found the
+combinator methods (`map`, `and_then`, `>>`) used seven times in the whole
+codebase despite being the intended idiomatic path, because a Python
+lambda cannot contain a statement and the chain reads worse than the
+early return it was meant to replace.
 
-[Full docs](https://github.com/lognd/typani/blob/main/docs/option.md)
+The bug history behind that codebase's 1612 changelog entries points at
+the same handful of root causes every time: `danger_ok()` called as a
+method instead of accessed as a property (a footgun repeated enough that
+project instructions explicitly warn against it), a value or `Result` silently
+dropped or defaulted (63 changelog titles say "silently"), and an `assert`-guarded unwrap invariant
+that silently vanishes under `python -O`. `UnwrapError` is raised
+unconditionally rather than via `assert`, `danger_ok`/`danger_err` are
+properties the type checker can flag if called, and `typani.lint` turns
+the property-called-as-method and discarded-`Result` shapes into a
+mechanical, CI-checkable rule instead of a review-time habit that lapses.
 
-`T | None` is untracked by the type checker in many real codebases.  `Option[T]` is
-a real container: the type checker forces you to handle the absent case.
+## Feature table
 
-```python
-from typani import Some, Nothing, Option
+| Type | Purpose | Docs |
+|------|---------|------|
+| `Result[T, E]` | explicit success or failure, Rust-shaped | [docs/result.md](docs/result.md) |
+| `Option[T]` | explicit presence or absence | [docs/option.md](docs/option.md) |
+| `ErrorSet` | Zig-inspired typed error enum, `\|`-mergeable | [docs/error_set.md](docs/error_set.md) |
+| `Sum[A, B, ...]` | exhaustive tagged union with `.match()` | [docs/sum.md](docs/sum.md) |
+| `dispatch` | dict-based `isinstance` dispatch | [docs/dispatch.md](docs/dispatch.md) |
+| `Unit` | zero-slot marker/sentinel type | [docs/unit.md](docs/unit.md) |
+| `Unreachable` | runtime-checked exhaustiveness sentinel | [docs/unreachable.md](docs/unreachable.md) |
+| `Singleton` family | singleton decorator, base classes, `SingletonModel` | [docs/singleton.md](docs/singleton.md) |
+| `unwrap()` / `@propagate` / `@catching` | Rust-`?`-style propagation, exception-to-`Result` boundary | [docs/result.md#propagation](docs/result.md#propagation) |
+| `python -m typani.lint` | stdlib-only misuse checker (TYP001-TYP005) | [docs/lint.md](docs/lint.md) |
+| `typani-core` (`native` extra) | optional Rust accelerator, pure-Python fallback | [docs/native.md](docs/native.md) |
 
-def find_user(users: dict[int, str], uid: int) -> Option[str]:
-    return Some(users[uid]) if uid in users else Nothing()
+## Type checking
+
+typani ships `py.typed`; both `ty` and `mypy` run clean against the
+library itself. `isinstance(r, Ok)` and `match r: case Ok(v): ...`
+narrow the variant because `Ok`/`Err`/`Some`/`Nothing` are real classes,
+not factory functions. `Result[T_co, E_co]` and `Option[T_co]` are
+declared with covariant type parameters, so `Ok[int, Never]` is assignable
+to `Result[int, MyError]` and a function's declared return type drives
+inference at the call site instead of requiring an explicit annotation on
+every `Ok(...)`/`Err(...)` construction.
+
+## Performance
+
+Pure-Python 0.1.0's class-based `Ok`/`Err`/`Some`/`Nothing` are about
+3.7x faster than 0.0.4's sentinel-checked representation on the
+construction/accessor hot path (`Ok(1)`: 540ns -> 148ns; `is_err` +
+`danger_ok`: 877ns -> 160ns).
+
+The optional native core (`typani-core`, PyO3, `abi3-py310`) wins clearly
+on accessors -- `unwrap()` is roughly 30-60ns native versus roughly 94ns
+pure-Python, a single Rust field read against a Python-level attribute
+lookup plus exception-path overhead. Plain construction (`Ok(1)`,
+`Some(1)`) and `map`/`and_then` chains land at roughly parity between the
+two backends: CPython's own allocation and `type.__call__` dispatch, plus
+the PyO3 call-boundary's argument marshaling, dominate both paths at that
+scale, so there is no large win to claim there. The backend is selected
+automatically at import time (`typani_core` importable and
+version-matched to typani itself), falls back to pure-Python otherwise,
+and can be forced with `TYPANI_PURE=1`. Full numbers and methodology:
+[docs/native.md](docs/native.md).
+
+## Lint
+
+```bash
+python -m typani.lint src
 ```
 
-Chain transformations without checking at every step:
+| Rule | Severity | Detects |
+|------|----------|---------|
+| TYP001 | error | a property (`danger_ok`, `is_ok`, `some`, ...) called as a method |
+| TYP002 | error | truthiness of a payload attribute (`if r.ok:` misreads `Ok(0)`) |
+| TYP003 | error | a constructed or chained `Result`/`Option` that is discarded |
+| TYP004 | info | the `if x.is_err: return Err(x.danger_err)` propagation boilerplate |
+| TYP005 | info | `assert x.is_ok` immediately followed by `x.danger_ok`, stripped under `-O` |
 
-```python
-users = {1: "alice", 2: "bob"}
+Run against a 649-file consumer codebase that was not written with this
+checker in mind: `--no-info` (errors only) found 4 findings, all TYP003,
+all confirmed true positives on inspection -- each a bare-statement call
+to a function genuinely annotated `-> Result[...]`. Zero false positives.
+With info-severity findings included, TYP004 fired 649 times, matching
+the independent grep-based estimate of 651 propagation-boilerplate sites
+from the same audit that shaped the 0.1 API. Full methodology and rule
+reference: [docs/lint.md](docs/lint.md).
 
-display = (
-    find_user(users, 1)          # Some("alice")
-    | str.upper                  # Some("ALICE")
-    | (lambda s: f"User: {s}")   # Some("User: ALICE")
-)
-print(display.unwrap_or("unknown"))  # "User: ALICE"
+## Development
 
-missing = (
-    find_user(users, 99)         # Nothing
-    | str.upper                  # Nothing (map skips Nothing)
-)
-print(missing.unwrap_or("unknown"))  # "unknown"
+```bash
+uv sync --all-groups   # install typani plus every dev dependency group
+make develop            # build the optional native crate in place (maturin develop)
 ```
 
-`Nothing` short-circuits the whole chain just like `Err` does in `Result`.
-
----
-
-## `ErrorSet` -- Zig-inspired typed error enums
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/error_set.md)
-
-Define errors with human-readable descriptions attached, combine them with `|`, and
-use them as `Result` error types -- all without accidentally comparing them to raw
-strings.  `A | B` and `B | A` return the exact same cached class object.
-
-```python
-from typani import ErrorSet, Ok, Err, Result
-
-class NetworkError(ErrorSet):
-    Timeout   = "connection timed out after the deadline"
-    Refused   = "remote host refused the connection"
-    DnsFailure = "could not resolve hostname"
-
-class ParseError(ErrorSet):
-    InvalidJson = "payload is not valid JSON"
-    MissingKey  = "required key not present in payload"
-
-# Merge into a single "global" error set -- like Zig's || operator
-AppError = NetworkError | ParseError
-
-def fetch_config(url: str) -> Result[dict, AppError]:
-    ...
-
-err = NetworkError.Timeout
-print(err.description)  # "connection timed out after the deadline"
-print(str(err))         # "NetworkError.Timeout: connection timed out after the deadline"
-print(repr(err))        # "NetworkError.Timeout"
-```
-
-Why not `StrEnum`?  `StrEnum` makes members equal to their string value
-(`NetworkError.Timeout == "Timeout"` is `True`), which blurs the line between domain
-errors and raw strings and makes exhaustiveness checking unreliable.  `ErrorSet`
-keeps description strings internal and never exposes them as the member's identity.
-It also works on Python 3.10+ -- `StrEnum` requires 3.11.
-
----
-
-## `Sum[A, B, ...]` -- exhaustive tagged unions
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/sum.md)
-
-Replace `isinstance` chains with a single `match` call that the type checker can
-verify is exhaustive:
-
-```python
-from dataclasses import dataclass
-from typani import Sum
-
-@dataclass
-class Circle:
-    radius: float
-
-@dataclass
-class Square:
-    side: float
-
-@dataclass
-class Triangle:
-    base: float
-    height: float
-
-Shape = Sum[Circle, Triangle, Square]
-
-def area(shape: Shape) -> float:
-    return Shape.match(shape, {
-        Circle:   lambda c: 3.14159 * c.radius ** 2,
-        Triangle: lambda t: 0.5 * t.base * t.height,
-        Square:   lambda s: s.side ** 2,
-    })
-```
-
-`match` raises `TypeError` if any variant is missing from the dict -- you cannot
-forget a case.  Compare to the equivalent `isinstance` version, which silently falls
-through to `None` if you add a new variant and forget to update every dispatch site.
-
----
-
-## `dispatch` -- dict-based isinstance dispatch
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/dispatch.md)
-
-For when you want the `Sum` dispatch style but can't or don't want to change the
-class hierarchy:
-
-```python
-from typani import dispatch
-
-def describe(value: int | str | list) -> str:
-    return dispatch(value, {
-        int:  lambda n: f"the integer {n}",
-        str:  lambda s: f"the string {s!r}",
-        list: lambda l: f"a list of {len(l)} items",
-    })
-```
-
-First matching type wins (subclasses before base classes).  Pass `default=...` to
-handle unknown types instead of raising `TypeError`.
-
----
-
-## `@singleton` -- singleton semantics for any class
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/singleton.md)
-
-The decorator works on regular classes, classes with existing bases, and Pydantic
-`BaseModel` subclasses.  No metaclass conflicts.
-
-```python
-from pydantic import BaseModel
-from typani import singleton
-
-@singleton
-class AppConfig(BaseModel):
-    debug: bool = False
-    host: str = "localhost"
-    port: int = 8080
-
-# First call -- constructs and caches
-cfg = AppConfig(debug=True, host="prod.example.com", port=9000)
-
-# Every subsequent call -- returns the same object, ignores new args
-same = AppConfig(debug=False)
-assert cfg is same    # True
-assert same.debug     # True -- first call's values are kept
-```
-
-`class AppConfig(BaseModel, Singleton)` would raise a `TypeError` at import time
-because Python resolves metaclass conflicts before any Python code can run.
-`@singleton` sidesteps this by creating the merged metaclass *after* the class
-exists, then producing a thin subclass using it.
-
-Use `strict=True` to raise instead of silently returning the cached instance:
-
-```python
-@singleton(strict=True)
-class Database:
-    def __init__(self, url: str) -> None:
-        self.url = url
-
-db = Database("postgres://localhost/mydb")
-Database("sqlite://")   # RuntimeError: Database is a strict singleton...
-```
-
-Also available as base classes when you don't need Pydantic:
-
-```python
-from typani import Singleton, StrictSingleton
-
-class AppConfig(Singleton): ...         # silent return on re-instantiation
-class Database(StrictSingleton): ...    # RuntimeError on re-instantiation
-Database.instance()                     # retrieves the one created instance
-```
-
----
-
-## `SingletonModel` -- Pydantic BaseModel + singleton
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/singleton.md)
-
-For the `class Cfg(SingletonModel): ...` style without the decorator:
-
-```python
-from typani import SingletonModel
-from pydantic import Field
-
-class AppConfig(SingletonModel):
-    debug: bool = False
-    host: str = "localhost"
-    port: int = Field(default=8080, ge=1, le=65535)
-
-cfg = AppConfig(debug=True, host="prod.example.com", port=9000)
-assert AppConfig() is cfg  # True
-```
-
-Requires `pip install typani[pydantic]`.
-
----
-
-## `Unit` -- zero-size marker type
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/unit.md)
-
-The Python equivalent of Rust's `()`.  Use it as the success value of a `Result`
-that has no data to return, or as a lightweight sentinel.
-
-```python
-from typani import Unit, Ok, Result
-
-def write_file(path: str, data: bytes) -> Result[Unit, str]:
-    try:
-        with open(path, "wb") as f:
-            f.write(data)
-        return Ok(Unit())
-    except OSError as e:
-        return Err(str(e))
-```
-
-`Unit` forces `__slots__ = ()` on every subclass -- instances carry no attributes and
-cannot accidentally grow state.
-
----
-
-## `Unreachable` -- exhaustiveness sentinel
-
-[Full docs](https://github.com/lognd/typani/blob/main/docs/unreachable.md)
-
-Works with `typing.assert_never` to get static exhaustiveness checking.  Raises
-`AssertionError` with a location-aware message if it is ever actually reached at
-runtime.
-
-```python
-from typing import assert_never
-from typani import Unreachable
-
-def handle(value: int | str) -> str:
-    if isinstance(value, int):
-        return str(value)
-    elif isinstance(value, str):
-        return value
-    else:
-        assert_never(value)   # mypy/pyright error if value can be anything else
-        Unreachable()         # TypeError the moment this line is reached
-```
-
----
-
-## Requirements
-
-- Python 3.10+
-- pydantic>=2.0 (optional, for `SingletonModel`)
+This is a [frob](https://github.com/lognd/frob)-enabled repository; frob
+is the interface for everything past install (see the Makefile's own
+comment on this). `frob check` is the gate, `frob test` runs the
+touched-set test suite, `frob format` applies formatting.
+
+## Versioning and compatibility
+
+0.1.0 changes the `Result`/`Option` surface relative to 0.0.x: `Ok`/`Err`/
+`Some`/`Nothing` become real classes (`isinstance`/`match` narrowing,
+value equality, pickling); `danger_ok`/`danger_err`/`danger_some` now
+raise `UnwrapError` (an `AssertionError` subclass, so existing
+`pytest.raises(AssertionError)` checks still pass) instead of a bare
+`AssertionError`; `Result(...)`/`Option(...)` direct construction is
+removed (`Ok(value)`/`Err(error)`/`Some(value)`/`Nothing()` are
+unaffected); and `bool(result)`/`bool(option)` now raise `TypeError`
+instead of returning a truthiness value. Every public name, all
+properties, all combinators, `|`/`>>`, `ErrorSet`, `Sum`, `dispatch`,
+`Unit`, `Unreachable`, and the singleton family are unchanged. See
+`docs/redesign-0.1.md` section 3 for the full compatibility accounting.
+
+typani intends semantic versioning from 0.1.0 onward. The optional
+`typani-core` native extension is pinned to typani's own version
+`==` (never `>=`/`~=`) in the `native` extra: it is ABI-coupled, so the
+pure-Python and native packages are built and released together, and a
+version mismatch falls back to pure-Python rather than risk running a
+skewed native ABI.
 
 ## License
 
-MIT
+MIT, as declared in `pyproject.toml`.
+
+Logan Dapp <logan@logand.app>

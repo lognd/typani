@@ -113,12 +113,15 @@ Some(4).filter(lambda x: x % 2 == 0)  # Some(4)
 Some(3).filter(lambda x: x % 2 == 0)  # Nothing
 ```
 
-### `ok_or(err) -> Result[T, E]` / `ok_or_else(fn) -> Result[T, E]`
+### `ok_or(err) -> Result[T, E]`
 
-Convert to `Result`: `Some(v) -> Ok(v)`, `Nothing -> Err(err)` (or `Err(fn())` for
-the lazy form).
+Convert to `Result`: `Some(v) -> Ok(v)`, `Nothing() -> Err(err)`.
 
-### `Option.from_optional(x) -> Option[T]`
+### `ok_or_else(fn) -> Result[T, E]`
+
+Like `ok_or`, computing the error lazily: `Some(v) -> Ok(v)`, `Nothing() -> Err(fn())`.
+
+### `from_optional(x) -> Option[T]`
 
 Wrap a bare `T | None`: `Some(x)` when `x is not None`, else `Nothing()`.
 
