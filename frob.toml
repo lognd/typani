@@ -121,3 +121,22 @@ reason = "`python -m typani.lint` entry point invoked by module path, never impo
 [[refs.entrypoint]]
 path = "scripts/check.py"
 reason = "the local gate front door, run by `make check` and by hand; never imported by tracked source"
+
+# T-0025: standard open-source community files. GitHub and human readers
+# discover these by file-presence convention (repo root, .github/), never
+# by name from tracked source.
+[[refs.entrypoint]]
+path = "LICENSE"
+reason = "read by GitHub/packaging tools by file-presence convention, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = "CODE_OF_CONDUCT.md"
+reason = "read by GitHub/humans by file-presence convention, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = ".github/ISSUE_TEMPLATE/*.yml"
+reason = "read by GitHub's issue-form UI by file-presence convention, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = ".github/PULL_REQUEST_TEMPLATE.md"
+reason = "read by GitHub's PR-creation UI by file-presence convention, never referenced by name from tracked source"

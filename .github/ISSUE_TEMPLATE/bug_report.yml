@@ -1,0 +1,63 @@
+name: Bug report
+description: Report unexpected or incorrect behavior in typani
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report. The more precise the
+        reproduction, the faster this can be fixed.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the incorrect or unexpected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest code snippet that reproduces the issue. Please trim it
+        down as far as it will go before pasting it here.
+      render: python
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to happen instead.
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: typani version and backend
+      description: >
+        Run: python -c "import typani; print(typani.__version__, typani.backend_name())"
+      placeholder: "0.1.0 native"
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Python version and OS
+      placeholder: "Python 3.12.4, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: lint-checked
+    attributes:
+      label: Lint check
+      options:
+        - label: I ran `python -m typani.lint` on my snippet
+          required: false

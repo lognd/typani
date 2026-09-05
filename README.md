@@ -265,6 +265,20 @@ pure-Python and native packages are built and released together, and a
 version mismatch falls back to pure-Python rather than risk running a
 skewed native ABI.
 
+## Contributing
+
+Contributions are welcome, from a typo fix to a new feature. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request; it
+covers the local dev setup, the commit format, and the
+[AI-assisted-contributions policy](CONTRIBUTING.md#ai-assisted-contributions)
+in particular. Everyone participating in this project is expected to
+follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for how to report a vulnerability;
+please do not file a public issue for one.
+
 ## License
 
 MIT, as declared in `pyproject.toml`.

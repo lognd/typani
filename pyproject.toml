@@ -50,6 +50,10 @@ Changelog = "https://github.com/lognd/typani/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 packages = { find = { where = ["src"] } }
+# T-0025: build-system.requires pins setuptools>=68, which predates the
+# setuptools>=77 [project].license-files key (PEP 639). Use the classic
+# [tool.setuptools] form instead of bumping the pin for this alone.
+license-files = ["LICENSE"]
 
 [tool.setuptools.package-data]
 typani = ["py.typed", "lint/**"]
