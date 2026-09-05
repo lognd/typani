@@ -219,9 +219,26 @@ like an un-propagated Rust panic.
 `@propagate` also works on `async def` functions, on plain methods, and on the
 inner function of a `@classmethod`.
 
-Used as a factory (`@propagate(on_error=fn)`), the returned decorator binds
-*on_error* through a plain inner function rather than `functools.partial` (as
-of T-0030), so the indirection stays statically resolvable.
+### `propagate(func=None, *, on_error=None)`
+
+```python
+@propagate                      # bare form
+def f(...) -> Result[T, E]: ...
+
+@propagate(on_error=hook)       # factory form
+def g(...) -> Result[T, E]: ...
+```
+
+| Parameter | Type | Meaning |
+|-----------|------|---------|
+| `func` | callable | The function to wrap. Omit it (factory form) to pass keyword options. |
+| `on_error` | `Callable[[Callable, Result | Option], object] | None` | Called as `on_error(func, container)` with the decorated function and the container about to be returned, once per propagated hop, after the trace entry is appended and before the return. Use it at a subsystem boundary to log at WARNING, count failures, or attach a note. An exception raised by the hook propagates to the caller instead of the container being returned. |
+
+Returns the wrapped function with `functools.wraps` metadata and
+`__wrapped__` set. Sync and `async def` functions are both accepted; the
+async form awaits the call inside the same handler. Every propagated hop is
+also logged at `DEBUG` on the `typani.propagate` logger as
+`propagate: <qualname> returned <repr>`, whether or not `on_error` is given.
 
 ### Cost
 
