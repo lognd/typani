@@ -1,0 +1,105 @@
+name: Release
+
+# Manual dispatch ONLY (T-3011 doctrine): a normal push never uploads to
+# PyPI. Releasing is a deliberate, human-triggered action -- run this
+# workflow from the Actions tab after scripts/bump_version.py and the
+# version bump commit have landed on main.
+#
+# One-time setup: on pypi.org, add a trusted publisher (OIDC) for this
+# project with Owner/Repo set to this repo, Workflow: release.yml,
+# Environment: pypi. No API token is stored in this repo.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-pure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - run: uv python install 3.13
+      - run: uv build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-pure
+          path: dist/*
+
+  build-native:
+    # T-0010: guarded -- no-op until crates/typani-core/Cargo.toml exists.
+    if: hashFiles('crates/typani-core/Cargo.toml') != ''
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64
+            manylinux: auto
+          - os: ubuntu-latest
+            target: aarch64
+            manylinux: auto
+          - os: macos-latest
+            target: x86_64
+          - os: macos-latest
+            target: aarch64
+          - os: windows-latest
+            target: x86_64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv python install 3.13
+
+      - name: build native wheel
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux || 'auto' }}
+          args: --release --out dist -m crates/typani-core/Cargo.toml
+
+      - name: smoke-test the built wheel
+        if: matrix.target == 'x86_64'
+        shell: bash
+        run: |
+          uv venv smoke-venv
+          uv pip install --python smoke-venv typani_core --no-index --find-links dist
+          uv run --python smoke-venv python -c "import typani_core"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-native-${{ matrix.os }}-${{ matrix.target }}
+          path: dist/*
+
+  publish:
+    needs: [build-pure, build-native]
+    # build-native is itself conditionally skipped when the native crate
+    # does not exist yet; always() lets publish still run off build-pure
+    # alone in that case, while still failing if build-native ran and failed.
+    if: |
+      always() &&
+      needs.build-pure.result == 'success' &&
+      (needs.build-native.result == 'success' || needs.build-native.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dist-*
+          path: dist
+          merge-multiple: true
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist

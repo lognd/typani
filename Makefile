@@ -1,52 +1,60 @@
-VENV    := .venv
-PYTHON  := $(VENV)/bin/python
-PIP     := $(VENV)/bin/pip
-RUFF    := $(VENV)/bin/ruff
-BLACK   := $(VENV)/bin/black
-ISORT   := $(VENV)/bin/isort
-MYPY    := $(VENV)/bin/mypy
-PYTEST  := $(VENV)/bin/pytest
+# Stamp file: uv sync runs only when pyproject.toml or uv.lock changes.
+STAMP := .venv/.install-stamp
 
-.PHONY: all venv install lint format typecheck test clean clean-dist build upload
+.PHONY: install develop clean build upload mypy
 
-all: lint typecheck test
+# T-0008 (per T-3400 idiom): this Makefile intentionally does NOT ship
+# format/lint/typecheck/test/coverage/check targets. This is a
+# frob-enabled project (see frob.toml) and frob IS the interface for
+# those workflows, not a make wrapper around it -- use the commands
+# below directly:
+#
+#   frob format     ruff check --fix + ruff format
+#   frob check      the aggregate gate (ruff, ty, frob cycle/dup/arch/...)
+#   frob test       select and run tests for the touched set (or --all)
+#   frob coverage   refresh coverage.xml / the coverage stamp
+#
+# Only bootstrap (install, develop), build/publish (build, upload), and
+# the mypy oracle stay here: bootstrap cannot be a frob subcommand
+# because it installs frob's own prerequisites, build/upload carry
+# release-specific logic frob has no equivalent for, and mypy is kept
+# only as a 3.10-semantics oracle alongside frob's own ty-based check
+# (see pyproject.toml [tool.frob] check_skip_ty, T-0002/T-0012).
 
-$(VENV)/bin/activate:
-	python3 -m venv $(VENV)
-	$(PIP) install --upgrade pip --quiet
+# ---------- install (stamp-guarded bootstrap) ----------
 
-venv: $(VENV)/bin/activate
+$(STAMP): pyproject.toml
+	# --all-extras is deliberately NOT used here: the `native` extra pins
+	# typani-core==0.1.0, which is not published yet (T-0010). Once it is,
+	# CI and local installs that want the native extension should opt in
+	# explicitly with `uv sync --all-groups --all-extras`.
+	uv sync --all-groups
+	@touch $(STAMP)
 
-install: venv
-	$(PIP) install -e ".[dev]" --quiet
+install: $(STAMP)
 
-lint: install
-	$(RUFF) check src/ tests/
-	$(BLACK) --check src/ tests/
+develop: $(STAMP)
+	@test -f crates/typani-core/Cargo.toml || (echo "no native crate yet (T-0010)"; exit 0)
+	@test -f crates/typani-core/Cargo.toml && uv run maturin develop --uv -m crates/typani-core/Cargo.toml || true
 
-format: install
-	$(BLACK) src/ tests/
-	$(ISORT) src/ tests/
+# ---------- typecheck oracle ----------
 
-typecheck: install
-	$(MYPY) --config-file mypy-py310.ini src/
-
-test: install
-	$(PYTEST)
-
-clean:
-	rm -rf $(VENV) .mypy_cache .pytest_cache .ruff_cache
-	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+mypy: $(STAMP)
+	uv run mypy --config-file mypy-py310.ini
 
 # ---------- build & publish ----------
 
-clean-dist:
-	rm -rf dist/ build/
+clean:
+	rm -rf dist/ build/ .pytest_cache/ .ruff_cache/ .mypy_cache/ .ty_cache/ .coverage htmlcov/ coverage.xml
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; true
+	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null; true
 
-build: install clean-dist
-	$(PYTHON) -m build
+build: clean
+	uv build
 
 upload: build
-	@set -a && . ./.env && set +a; \
-	TWINE_USERNAME=__token__ TWINE_PASSWORD="$$UV_PUBLISH_TOKEN" $(VENV)/bin/twine upload dist/*
+	@NEW=$$(uv run python scripts/bump_version.py); \
+	git add pyproject.toml; \
+	git commit -m "chore: bump version to $$NEW"; \
+	git push; \
+	uv build && uv publish

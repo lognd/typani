@@ -32,3 +32,37 @@ language = "python"
 command = [".venv/bin/pytest", "-q", "{ids}"]
 all_command = [".venv/bin/pytest", "-q"]
 cwd = "."
+
+# T-0008: these entrypoints are read by something OUTSIDE this project's
+# own tracked-file graph (GitHub Actions, `make`, a release-time script,
+# a human/GitHub reader, `uv sync`/`uv run`), never referenced by name
+# from source the way an import or a doc link would be. Declaring them
+# here (the same `[[refs.entrypoint]]` idiom frob's own frob.toml uses)
+# is the correct fix for REF001/REF002 -- not a per-project waiver.
+[[refs.entrypoint]]
+path = ".github/workflows/*.yml"
+reason = "read by GitHub Actions outside this repo's own tracked-file graph, never imported/referenced from source"
+
+[[refs.entrypoint]]
+path = "Makefile"
+reason = "read by `make` outside this repo's own tracked-file graph, not referenced from source"
+
+[[refs.entrypoint]]
+path = "scripts/bump_version.py"
+reason = "release-time executable run by the `upload` Makefile target and CI, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "CHANGELOG.md"
+reason = "read by humans/GitHub at release time, not referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = "README.md"
+reason = "read by humans/GitHub, a single pyproject.toml reference is expected, not fragile"
+
+[[refs.entrypoint]]
+path = "uv.lock"
+reason = "read by `uv sync`/`uv run` outside this repo's own tracked-file graph, one CI workflow mention is expected, not fragile"
+
+[[refs.entrypoint]]
+path = "src/typani/py.typed"
+reason = "PEP 561 marker read by type checkers/packaging tools by file presence, never imported by tracked source"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "typani"
-version = "0.0.4"
+version = "0.1.0"
 description = "I extracted out a couple of the types that I've found myself using across a couple of projects. This repository is mostly for myself, but if you find it useful, I'm glad!"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,16 +17,28 @@ dependencies = []
 
 [project.optional-dependencies]
 pydantic = ["pydantic>=2.0"]
+# T-0010: the native acceleration extra -- typani-core (crates/typani-core),
+# a PyO3/maturin extension providing an accelerated Result/Option, pinned
+# EXACT (`==`), not `>=`/`~=`, to typani's own version number. A loose pin
+# on an ABI-coupled native extension produces skew nobody can reproduce:
+# the pure-Python and native implementations must be built and released
+# together, so the version string itself is the contract. Without this
+# extra, typani still installs and runs in pure-Python mode. Unpublished
+# until T-0010 lands; do not add to `uv sync --all-extras` until then.
+native = ["typani-core==0.1.0"]
+
+[dependency-groups]
 dev = [
-    "ruff>=0.4",
-    "black>=24",
+    "ruff>=0.8",
+    "ty>=0.0.1a8",
     "mypy>=1.10",
     "pytest>=8",
     "pytest-cov>=5",
-    "isort>=5",
-    "pydantic>=2.0",
-    "build>=1.0",
-    "twine>=5.0",
+    "pytest-xdist>=3",
+    "hypothesis>=6",
+    "pydantic>=2.12",
+    "maturin>=1.7,<2",
+    "tomli>=2; python_version < \"3.11\"",
 ]
 
 [project.urls]
@@ -34,44 +46,63 @@ Homepage = "https://github.com/lognd/typani"
 Documentation = "https://github.com/lognd/typani#readme"
 Source = "https://github.com/lognd/typani/src/typani"
 Issues = "https://github.com/lognd/typani/issues"
+Changelog = "https://github.com/lognd/typani/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 packages = { find = { where = ["src"] } }
+
+[tool.setuptools.package-data]
+typani = ["py.typed", "lint/**"]
 
 [tool.ruff]
 line-length = 88
 target-version = "py310"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "B"]
-ignore = ["E501"]
+select = ["E", "F", "W", "I", "B"]
 
-[tool.black]
-line-length = 88
-target-version = ["py310"]
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["E501"]
+
+[tool.ty.src]
+include = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra -q"
+addopts = "-q -ra"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')"
 ]
 
-[tool.isort]
-profile = "black"
-line_length = 88
-py_version = 310
-src_paths = ["src", "tests"]
-known_first_party = ["lograder"]
+[tool.coverage.run]
+source = ["src/typani"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
 
 [tool.frob]
-# typani's own type-checking toolchain is mypy (Makefile `typecheck`
-# target, mypy-py310.ini). frob's bundled `ty` disagrees with mypy on a
-# batch of pre-existing typing diagnostics across src/tests/examples;
-# resolving those is legacy debt tracked separately (see tickets/), not
-# something a frob adoption pass should silently paper over with source
-# edits. Skip ty at the frob-check level rather than duplicate/replace the
-# project's chosen type checker. check_skip_ty is only read from
-# pyproject.toml's [tool.frob] table (AppConfig.from_external), not from
-# frob.toml, despite frob.toml owning check_base/[graph]/[gates]/[testing].
+# typani's own type-checking toolchain is transitioning to ty as the
+# primary checker (T-0008); mypy (Makefile `mypy` target, mypy-py310.ini)
+# is kept only as a 3.10-semantics oracle. frob's bundled ty still
+# disagrees with mypy on a batch of pre-existing typing diagnostics across
+# src/tests/examples (T-0002) -- resolving those, and dropping this flag,
+# is tracked by T-0012, not something this tooling pass silently papers
+# over with source edits. check_skip_ty is only read from pyproject.toml's
+# [tool.frob] table (AppConfig.from_external), not from frob.toml, despite
+# frob.toml owning check_base/[graph]/[gates]/[testing].
 check_skip_ty = true
+
+# T-0010: typani-core is not published to PyPI yet, so `uv lock` cannot
+# resolve the `native` extra above against the package index. Point uv
+# at a local placeholder package instead (crates/typani-core/pyproject.toml)
+# so the lockfile can be generated today without a network round-trip to
+# a package that does not exist there. The placeholder has no
+# functionality; T-0010 replaces it with the real PyO3/maturin crate and
+# this source override is dropped once typani-core has a real release.
+[tool.uv.sources]
+typani-core = { path = "crates/typani-core" }

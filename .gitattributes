@@ -1,0 +1,6 @@
+# Normalize line endings: every text file is LF in the repo and in the
+# working tree on every platform. CRLF in source silently breaks byte- and
+# length-sensitive tooling (frob T-2611); binary assets are untouched.
+* text=auto eol=lf
+*.svg text eol=lf
+*.png binary

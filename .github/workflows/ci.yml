@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.10", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: install python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: install
+        run: uv sync --all-groups
+
+      - name: lint
+        run: |
+          uv run ruff check src tests
+          uv run ruff format --check src tests
+
+      - name: typecheck (ty)
+        # T-0012 owns dropping check_skip_ty (pyproject.toml [tool.frob])
+        # and re-enabling ty at the frob-check gate. Until the pre-existing
+        # ty/mypy divergence (T-0002) is triaged, ty runs here informationally
+        # only -- mypy below stays the enforced 3.10-semantics oracle.
+        run: uv run ty check src
+        continue-on-error: true
+
+      - name: typecheck (mypy oracle)
+        run: uv run mypy --config-file mypy-py310.ini
+
+      - name: test (pure python)
+        run: uv run pytest -q -n auto
+        env:
+          TYPANI_PURE: "1"
+
+  native:
+    # T-0010: the native crate does not exist yet. This leg is a no-op
+    # until crates/typani-core/Cargo.toml lands; guarded per-step so the
+    # workflow stays green rather than failing on a missing crate.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: check for native crate
+        id: native-check
+        run: |
+          if [ -f crates/typani-core/Cargo.toml ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: dtolnay/rust-toolchain@stable
+        if: steps.native-check.outputs.present == 'true'
+
+      - uses: Swatinem/rust-cache@v2
+        if: steps.native-check.outputs.present == 'true'
+
+      - uses: astral-sh/setup-uv@v5
+        if: steps.native-check.outputs.present == 'true'
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: install python
+        if: steps.native-check.outputs.present == 'true'
+        run: uv python install 3.13
+
+      - name: install
+        if: steps.native-check.outputs.present == 'true'
+        run: uv sync --all-groups
+
+      - name: build native extension
+        if: steps.native-check.outputs.present == 'true'
+        run: uv run maturin develop --uv -m crates/typani-core/Cargo.toml
+
+      - name: cargo test
+        if: steps.native-check.outputs.present == 'true'
+        run: cargo test --manifest-path crates/typani-core/Cargo.toml
+
+      - name: test (native)
+        if: steps.native-check.outputs.present == 'true'
+        run: uv run pytest -q
+
+  frob-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: install python
+        run: uv python install 3.13
+
+      - name: install
+        run: uv sync --all-groups
+
+      # A missing/broken frob install must be a loud, non-green CI status,
+      # never a quiet notice on an otherwise green build (frob is pre-1.0,
+      # see frob's own CI idiom for this pattern).
+      - name: install frob
+        run: uv tool install frob || true
+
+      - name: frob check
+        run: |
+          if command -v frob >/dev/null 2>&1 && frob graph --help >/dev/null 2>&1; then
+            frob check
+          else
+            echo "::error::frob check could not run -- frob is not installed or not working (install: uv tool install frob). This gate is UNMEASURED, not clean; fix the install rather than ignoring this failure."
+            exit 1
+          fi
