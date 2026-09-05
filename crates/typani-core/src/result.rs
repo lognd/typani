@@ -591,8 +591,7 @@ impl ErrClass {
     }
 
     fn __reduce__(&self, py: Python<'_>) -> PyResult<Py<PyAny>> {
-        // frob:todo T-0010 cache the _rebuild_err lookup in a PyOnceLock
-        // (like UNWRAP_ERROR above) -- the note continues below.
+        // frob:todo T-0010
         // Cache typani.result._rebuild_err in a
         // PyOnceLock (like UNWRAP_ERROR above) instead of a fresh
         // module import + getattr on every pickle; deferred since pickling
