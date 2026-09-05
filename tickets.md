@@ -718,7 +718,7 @@ The smoke step's interpreter lookup and the Intel macOS runner were the last two
 ```yaml
 id: T-0027
 title: 'release.yml: drop the Intel macOS wheel leg'
-state: in-progress
+state: done
 kind: docs
 origin: human
 created: '2026-09-05'
@@ -737,6 +737,10 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- cmd:python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/release.yml'));
+  print([(e['os'],e['target']) for e in d['jobs']['build-native']['strategy']['matrix']['include']])"
+  exit=0 sha256=71aa3a087ffc
 designated_repro_test: null
 threat: null
 component: null
@@ -745,3 +749,18 @@ anchor_reason: null
 land_commit: null
 ```
 The macos-13 Intel runner pool stalls a release for hours; the Intel wheel is dropped and docs/native.md lists the platforms that ship wheels.
+
+## Done report
+
+Waiting hours on the Intel macOS runner pool is not worth one wheel when the pure backend covers those users; the matrix drops it and the docs say which platforms ship wheels.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `cmd:python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/release.yml')); print([(e['os'],e['target']) for e in d['jobs']['build-native']['strategy']['matrix']['include']])" exit=0 sha256=71aa3a087ffc` (cmd evidence, exit=0)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 13 error(s), 986 warning(s), 0 waived
+- error-findings: DOC006@CODE_OF_CONDUCT.md, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
