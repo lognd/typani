@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import os
 import pickle
 import subprocess
 import sys
@@ -190,9 +191,13 @@ def test_python_o_safety() -> None:
             "    raise SystemExit(0)\n",
         ],
         cwd=Path(__file__).resolve().parents[1],
-        env={"PYTHONPATH": "src"},
+        # Extend, never replace, the environment: a bare env cannot start
+        # Python on Windows (SYSTEMROOT is required).
+        env={**os.environ, "PYTHONPATH": "src"},
+        capture_output=True,
+        text=True,
     )
-    assert proc.returncode == 0
+    assert proc.returncode == 0, proc.stderr
 
 
 # --- UnwrapError attributes -------------------------------------------------

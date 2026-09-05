@@ -13,6 +13,35 @@ on:
   workflow_dispatch:
 
 jobs:
+  # A release is gated behind green CI for the EXACT commit being released
+  # (never a branch name, never "the latest run"): the CI workflow must have
+  # a completed run for github.sha whose conclusion is success. An unreadable
+  # or missing status is refused, not treated as green. Build jobs are not
+  # gated (building evidence is free); only publish needs this.
+  verify-ci:
+    name: Verify CI is green for this commit
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    steps:
+      - name: Resolve the CI conclusion for ${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -e
+          runs=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$SHA&per_page=20" --jq '.workflow_runs')
+          count=$(echo "$runs" | jq 'length')
+          if [ "$count" = "0" ]; then
+            echo "::error::no CI run exists for $SHA -- push the commit and let CI finish first"; exit 1
+          fi
+          status=$(echo "$runs" | jq -r 'map(select(.status=="completed")) | sort_by(.run_number) | last | .conclusion // "none"')
+          echo "CI conclusion for $SHA: $status"
+          if [ "$status" != "success" ]; then
+            echo "::error::CI is not green for $SHA (conclusion: $status); refusing to publish"; exit 1
+          fi
+
   build-pure:
     runs-on: ubuntu-latest
     steps:
@@ -81,12 +110,13 @@ jobs:
           path: dist/*
 
   publish:
-    needs: [build-pure, build-native]
+    needs: [verify-ci, build-pure, build-native]
     # build-native is itself conditionally skipped when the native crate
     # does not exist yet; always() lets publish still run off build-pure
     # alone in that case, while still failing if build-native ran and failed.
     if: |
       always() &&
+      needs.verify-ci.result == 'success' &&
       needs.build-pure.result == 'success' &&
       (needs.build-native.result == 'success' || needs.build-native.result == 'skipped')
     runs-on: ubuntu-latest
@@ -100,11 +130,10 @@ jobs:
           path: dist
           merge-multiple: true
 
-      # Publishes with the PYPI_API_TOKEN repository secret (an API token
-      # created on pypi.org). If the secret is absent the action falls back
-      # to OIDC trusted publishing, which needs a publisher configured on
-      # pypi.org for BOTH distributions (typani and typani-core).
+      # OIDC trusted publishing, no secret: pypi.org has a publisher
+      # registered for BOTH distributions (typani, and typani-core via a
+      # pending publisher) bound to this repo, this workflow, and the
+      # `pypi` environment. id-token: write above is what makes it work.
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist
-          password: ${{ secrets.PYPI_API_TOKEN }}

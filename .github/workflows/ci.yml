@@ -70,6 +70,10 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         if: steps.native-check.outputs.present == 'true'
+        with:
+          # The crate is not at the repo root; rust-cache runs cargo metadata
+          # here and fails (exit 101) without an explicit workspace path.
+          workspaces: crates/typani-core -> target
 
       - uses: astral-sh/setup-uv@v5
         if: steps.native-check.outputs.present == 'true'
