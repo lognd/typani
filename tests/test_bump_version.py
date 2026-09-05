@@ -36,6 +36,7 @@ def _seed_project(tmp_path: Path, *, with_crate: bool) -> ModuleType:
     entirely inside the sandbox instead of this repo's real files."""
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname = "typani"\nversion = "0.1.0"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.1.0"]\n'
     )
 
     init_dir = tmp_path / "src" / "typani"
@@ -97,7 +98,10 @@ def test_write_pyproject_version_rewrites_only_version_field(
     module = _seed_project(tmp_path, with_crate=False)
     module._write_pyproject_version("0.2.0")
     text = (tmp_path / "pyproject.toml").read_text()
-    assert text == '[project]\nname = "typani"\nversion = "0.2.0"\n'
+    assert text == (
+        '[project]\nname = "typani"\nversion = "0.2.0"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.2.0"]\n'
+    )
 
 
 # frob:tests scripts/bump_version.py::_write_init_version
@@ -158,6 +162,7 @@ def test_main_default_part_bumps_patch_across_all_coupled_files(
     assert out == "0.1.1"
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "0.1.1"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.1.1"]\n'
     )
     assert (tmp_path / "src" / "typani" / "__init__.py").read_text() == (
         'from typani.result import Ok\n\n__version__ = "0.1.1"\n'
@@ -181,6 +186,7 @@ def test_main_part_minor_bumps_minor_across_all_coupled_files(
     assert capsys.readouterr().out.strip() == "0.2.0"
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "0.2.0"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.2.0"]\n'
     )
 
 
@@ -195,6 +201,7 @@ def test_main_part_major_bumps_major_across_all_coupled_files(
     assert capsys.readouterr().out.strip() == "1.0.0"
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "1.0.0"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==1.0.0"]\n'
     )
 
 
@@ -210,6 +217,7 @@ def test_main_set_writes_exact_explicit_version_to_every_coupled_file(
     assert out == "9.8.7"
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "9.8.7"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==9.8.7"]\n'
     )
     assert (tmp_path / "src" / "typani" / "__init__.py").read_text() == (
         'from typani.result import Ok\n\n__version__ = "9.8.7"\n'
@@ -233,6 +241,7 @@ def test_main_leaves_crate_files_absent_when_crate_missing(
     assert capsys.readouterr().out.strip() == "0.1.1"
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "0.1.1"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.1.1"]\n'
     )
     assert not (tmp_path / "crates" / "typani-core" / "pyproject.toml").exists()
     assert not (tmp_path / "crates" / "typani-core" / "Cargo.toml").exists()
@@ -252,6 +261,7 @@ def test_main_set_rejects_malformed_version(
     # The malformed --set is rejected before any file is touched.
     assert (tmp_path / "pyproject.toml").read_text() == (
         '[project]\nname = "typani"\nversion = "0.1.0"\n'
+        '[project.optional-dependencies]\nnative = ["typani-core==0.1.0"]\n'
     )
 
 
