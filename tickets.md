@@ -500,3 +500,39 @@ Release is now gated behind green CI for the exact commit and publishes with OID
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 11 error(s), 979 warning(s), 0 waived
 - error-findings: OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
+
+<!-- ticket:T-0023 -->
+```yaml
+id: T-0023
+title: local gate script, drop CI frob job until frob ships, valid release workflow
+state: in-progress
+kind: feature
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- scripts/check.py
+- tests/test_scripts.py
+- Makefile
+- frob.toml
+- README.md
+- .github/workflows/*.yml
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+frob has no stable release, so the CI frob-check job is removed and scripts/check.py (make check) becomes the local gate: frob check plus pytest under both backends. release.yml used hashFiles in a job-level if, which GitHub rejects at parse time; the crate exists, so the guards go and publish needs all three jobs.
