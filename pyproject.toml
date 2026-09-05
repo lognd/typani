@@ -58,8 +58,8 @@ dev = [
 
 [project.urls]
 Homepage = "https://github.com/lognd/typani"
-Documentation = "https://github.com/lognd/typani#readme"
-Source = "https://github.com/lognd/typani/src/typani"
+Documentation = "https://github.com/lognd/typani/blob/main/docs/index.md"
+Source = "https://github.com/lognd/typani/tree/main/src/typani"
 Issues = "https://github.com/lognd/typani/issues"
 Changelog = "https://github.com/lognd/typani/blob/main/CHANGELOG.md"
 

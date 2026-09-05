@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/assets/typani-banner.svg" alt="typani: typed value types for Python" width="100%"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/lognd/typani/main/docs/assets/typani-banner.svg" alt="typani: typed value types for Python" width="100%"/></p>
 
 # typani
 
@@ -111,9 +111,9 @@ function on failure instead of raising, giving Rust `?`/Zig `try`-style
 early return; `match Ok(v)`/`case Err(e)` narrows the variant; `Option`
 covers the "value or nothing" half of the same idea. `@propagate` adds one
 Python call frame per invocation (~110ns measured, see
-[docs/result.md#cost](docs/result.md#cost)) and pays for itself on
+[docs/result.md#cost](https://github.com/lognd/typani/blob/main/docs/result.md#cost)) and pays for itself on
 functions with two or more propagation sites, not one. See
-[docs/result.md](docs/result.md) and [docs/option.md](docs/option.md) for
+[docs/result.md](https://github.com/lognd/typani/blob/main/docs/result.md) and [docs/option.md](https://github.com/lognd/typani/blob/main/docs/option.md) for
 the full API.
 
 ## Why this shape
@@ -141,25 +141,25 @@ properties the type checker can flag if called, and `typani.lint` turns
 the property-called-as-method and discarded-`Result` shapes into a
 mechanical, CI-checkable rule instead of a review-time habit that lapses.
 
-Full module-by-module reference: [docs/index.md](docs/index.md), which
-also links to [docs/design.md](docs/design.md), the provable
+Full module-by-module reference: [docs/index.md](https://github.com/lognd/typani/blob/main/docs/index.md), which
+also links to [docs/design.md](https://github.com/lognd/typani/blob/main/docs/design.md), the provable
 system-design model of typani's own module graph.
 
 ## Feature table
 
 | Type | Purpose | Docs |
 |------|---------|------|
-| `Result[T, E]` | explicit success or failure, Rust-shaped | [docs/result.md](docs/result.md) |
-| `Option[T]` | explicit presence or absence | [docs/option.md](docs/option.md) |
-| `ErrorSet` | Zig-inspired typed error enum, `\|`-mergeable | [docs/error_set.md](docs/error_set.md) |
-| `Sum[A, B, ...]` | exhaustive tagged union with `.match()` | [docs/sum.md](docs/sum.md) |
-| `dispatch` | dict-based `isinstance` dispatch | [docs/dispatch.md](docs/dispatch.md) |
-| `Unit` | zero-slot marker/sentinel type | [docs/unit.md](docs/unit.md) |
-| `Unreachable` | runtime-checked exhaustiveness sentinel | [docs/unreachable.md](docs/unreachable.md) |
-| `Singleton` family | singleton decorator, base classes, `SingletonModel` | [docs/singleton.md](docs/singleton.md) |
-| `unwrap()` / `@propagate` / `@catching` | Rust-`?`-style propagation, exception-to-`Result` boundary | [docs/result.md#propagation](docs/result.md#propagation) |
-| `python -m typani.lint` | stdlib-only misuse checker (TYP001-TYP005) | [docs/lint.md](docs/lint.md) |
-| `typani-core` (`native` extra) | optional Rust accelerator, pure-Python fallback | [docs/native.md](docs/native.md) |
+| `Result[T, E]` | explicit success or failure, Rust-shaped | [docs/result.md](https://github.com/lognd/typani/blob/main/docs/result.md) |
+| `Option[T]` | explicit presence or absence | [docs/option.md](https://github.com/lognd/typani/blob/main/docs/option.md) |
+| `ErrorSet` | Zig-inspired typed error enum, `\|`-mergeable | [docs/error_set.md](https://github.com/lognd/typani/blob/main/docs/error_set.md) |
+| `Sum[A, B, ...]` | exhaustive tagged union with `.match()` | [docs/sum.md](https://github.com/lognd/typani/blob/main/docs/sum.md) |
+| `dispatch` | dict-based `isinstance` dispatch | [docs/dispatch.md](https://github.com/lognd/typani/blob/main/docs/dispatch.md) |
+| `Unit` | zero-slot marker/sentinel type | [docs/unit.md](https://github.com/lognd/typani/blob/main/docs/unit.md) |
+| `Unreachable` | runtime-checked exhaustiveness sentinel | [docs/unreachable.md](https://github.com/lognd/typani/blob/main/docs/unreachable.md) |
+| `Singleton` family | singleton decorator, base classes, `SingletonModel` | [docs/singleton.md](https://github.com/lognd/typani/blob/main/docs/singleton.md) |
+| `unwrap()` / `@propagate` / `@catching` | Rust-`?`-style propagation, exception-to-`Result` boundary | [docs/result.md#propagation](https://github.com/lognd/typani/blob/main/docs/result.md#propagation) |
+| `python -m typani.lint` | stdlib-only misuse checker (TYP001-TYP005) | [docs/lint.md](https://github.com/lognd/typani/blob/main/docs/lint.md) |
+| `typani-core` (`native` extra) | optional Rust accelerator, pure-Python fallback | [docs/native.md](https://github.com/lognd/typani/blob/main/docs/native.md) |
 
 ## Type checking
 
@@ -190,7 +190,7 @@ scale, so there is no large win to claim there. The backend is selected
 automatically at import time (`typani_core` importable and
 version-matched to typani itself), falls back to pure-Python otherwise,
 and can be forced with `TYPANI_PURE=1`. Full numbers and methodology:
-[docs/native.md](docs/native.md).
+[docs/native.md](https://github.com/lognd/typani/blob/main/docs/native.md).
 
 ## Lint
 
@@ -217,7 +217,7 @@ to a function genuinely annotated `-> Result[...]`. Zero false positives.
 With info-severity findings included, TYP004 fired 649 times, matching
 the independent grep-based estimate of 651 propagation-boilerplate sites
 from the same audit that shaped the 0.1 API. Full methodology and rule
-reference: [docs/lint.md](docs/lint.md).
+reference: [docs/lint.md](https://github.com/lognd/typani/blob/main/docs/lint.md).
 
 ## Development
 
@@ -271,15 +271,15 @@ skewed native ABI.
 ## Contributing
 
 Contributions are welcome, from a typo fix to a new feature. Read
-[CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request; it
+[CONTRIBUTING.md](https://github.com/lognd/typani/blob/main/CONTRIBUTING.md) before opening a pull request; it
 covers the local dev setup, the commit format, and the
-[AI-assisted-contributions policy](CONTRIBUTING.md#ai-assisted-contributions)
+[AI-assisted-contributions policy](https://github.com/lognd/typani/blob/main/CONTRIBUTING.md#ai-assisted-contributions)
 in particular. Everyone participating in this project is expected to
-follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+follow the [Code of Conduct](https://github.com/lognd/typani/blob/main/CODE_OF_CONDUCT.md).
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for how to report a vulnerability;
+See [SECURITY.md](https://github.com/lognd/typani/blob/main/SECURITY.md) for how to report a vulnerability;
 please do not file a public issue for one.
 
 ## License

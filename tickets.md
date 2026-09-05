@@ -350,10 +350,17 @@ scope:
 - src/typani/_version.py
 - uv.lock
 - CHANGELOG.md
+- README.md
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: add
+  glob: README.md
+  reason: absolute links so the PyPI-rendered README resolves
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
