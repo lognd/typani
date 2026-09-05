@@ -87,3 +87,9 @@ model's flows/interface do not yet have `frob:tests` bindings, see
 `tickets.md`). `TEST001`/`TEST003` on the design model are warn-severity
 in `frob.toml`, matching the same legacy-adoption baseline posture already
 applied to `COV001`/`TEST00x` on `src/typani/**`.
+
+The committed capability ratchet lives in
+`docs/design/registry/capability-via-ratchet.lock.json`: one accepted
+site count per (node, capability) pair with a reason, so a new
+capability site in any node fails `frob check` (SYS111) until the
+ceiling is raised deliberately.
