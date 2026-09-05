@@ -61,7 +61,6 @@ jobs:
           path: dist/*
 
   build-native:
-    # T-0010: guarded -- no-op until crates/typani-core/Cargo.toml exists.
     strategy:
       fail-fast: false
       matrix:
@@ -98,10 +97,14 @@ jobs:
       - name: smoke-test the built wheel
         if: matrix.target == 'x86_64'
         shell: bash
+        # Call the smoke venv's own interpreter: `uv run` inside the project
+        # directory would resolve the PROJECT environment and import nothing.
         run: |
+          set -e
           uv venv smoke-venv
           uv pip install --python smoke-venv typani_core --no-index --find-links dist
-          uv run --python smoke-venv python -c "import typani_core"
+          python_bin=$(ls smoke-venv/bin/python smoke-venv/Scripts/python.exe 2>/dev/null | head -1)
+          "$python_bin" -c "import typani_core; print('typani_core', typani_core.__version__)"
 
       - uses: actions/upload-artifact@v4
         with:
