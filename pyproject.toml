@@ -67,6 +67,15 @@ select = ["E", "F", "W", "I", "B"]
 # test data), never real imports.
 "tests/fixtures/**" = ["E501", "F401", "F811", "F821", "F841"]
 
+# typani_core is the optional native extension: absent on pure-only
+# runners by design, so its import in the backend selector is not a
+# resolvable module there. Same posture as frob's own native shim override.
+[[tool.ty.overrides]]
+include = ["src/typani/_impl.py"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
+
 [tool.ty.src]
 include = ["src", "tests", "examples"]
 # tests/fixtures/lint/** is deliberately broken code used as lint-rule test

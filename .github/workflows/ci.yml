@@ -99,6 +99,12 @@ jobs:
 
   frob-check:
     runs-on: ubuntu-latest
+    # frob is not published on PyPI yet, so this job cannot install it and
+    # reports UNMEASURED by design. Advisory (continue-on-error) until a
+    # frob release exists; the gate is enforced locally on every commit
+    # (frob check is the pre-commit interface, see Makefile). Remove the
+    # flag when `uv tool install frob` resolves.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 

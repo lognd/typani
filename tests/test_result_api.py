@@ -6,6 +6,7 @@ import copy
 import pickle
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -188,7 +189,7 @@ def test_python_o_safety() -> None:
             "except UnwrapError:\n"
             "    raise SystemExit(0)\n",
         ],
-        cwd="/home/logan/projects/typani",
+        cwd=Path(__file__).resolve().parents[1],
         env={"PYTHONPATH": "src"},
     )
     assert proc.returncode == 0
