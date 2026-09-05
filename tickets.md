@@ -63,3 +63,44 @@ anchor_reason: null
 land_commit: null
 ```
 Deferred from T-0010: Err.__reduce__ imports typani.result and fetches _rebuild_err on every pickle; cache it in a PyOnceLock like UNWRAP_ERROR. Pickling is not the hot path, so this waits for a native-core pass.
+
+<!-- ticket:T-0030 -->
+```yaml
+id: T-0030
+title: 'frob compliance sweep after 0.2 work: DOC006 pointers, DRIFT002 test edge,
+  OPAQUE001, REF001 scripts/_common, strata self-audit'
+state: in-progress
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- CODE_OF_CONDUCT.md
+- docs/lint.md
+- docs/design.md
+- tests/test_result_api.py
+- tests/test_propagate.py
+- tests/test_scripts.py
+- src/typani/_propagate.py
+- frob.toml
+- design/typani.strata
+- docs/design/registry/*
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Drive frob check from 24 errors to zero after T-0025 and T-0028 landed.
