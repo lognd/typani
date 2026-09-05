@@ -764,3 +764,78 @@ Waiting hours on the Intel macOS runner pool is not worth one wheel when the pur
 - tests: 0 passed (from 0 evidence id(s))
 - gates: 13 error(s), 986 warning(s), 0 waived
 - error-findings: DOC006@CODE_OF_CONDUCT.md, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
+
+<!-- ticket:T-0028 -->
+```yaml
+id: T-0028
+title: 'propagate: lexical scoping, on_error hook; lint: TYP004 mapped variant, TYP006/TYP007
+  exception-boundary rules'
+state: in-progress
+kind: feature
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/_propagate.py
+- src/typani/lint/*.py
+- tests/test_propagate.py
+- tests/test_lint.py
+- tests/fixtures/lint/*.py
+- docs/result.md
+- docs/lint.md
+- CHANGELOG.md
+- src/typani/result.py
+- src/typani/option.py
+- crates/typani-core/src/result.rs
+- crates/typani-core/typani_core.pyi
+- tests/test_result_api.py
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+scope_changes:
+- op: add
+  glob: src/typani/result.py
+  reason: wrap_err(err) is the idiom the TYP004 mapped-shape suggestion should point
+    at; it needs the pure class, the native class, the stub and parity coverage
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: src/typani/option.py
+  reason: wrap_err(err) is the idiom the TYP004 mapped-shape suggestion should point
+    at; it needs the pure class, the native class, the stub and parity coverage
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: crates/typani-core/src/result.rs
+  reason: wrap_err(err) is the idiom the TYP004 mapped-shape suggestion should point
+    at; it needs the pure class, the native class, the stub and parity coverage
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: crates/typani-core/typani_core.pyi
+  reason: wrap_err(err) is the idiom the TYP004 mapped-shape suggestion should point
+    at; it needs the pure class, the native class, the stub and parity coverage
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_result_api.py
+  reason: wrap_err(err) is the idiom the TYP004 mapped-shape suggestion should point
+    at; it needs the pure class, the native class, the stub and parity coverage
+  actor: logan
+  at: '2026-09-05'
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Consumer review of the 0.1 propagate design (frob T-3894) found a dynamic-extent hazard: @propagate catches UnwrapError from any undecorated helper below it and returns that container with wrong provenance. Scope the catch lexically via the raising frame's code object. Add an on_error hook and a DEBUG log. Lint: TYP004 distinguishes pass-through from mapped error shapes; TYP006 flags catch/catching with no named exception types; TYP007 flags except Exception / bare except inside Result-returning functions.
