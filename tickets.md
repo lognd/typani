@@ -391,7 +391,7 @@ Metadata-only patch: classifiers and keywords on both distributions so badge ser
 ```yaml
 id: T-0036
 title: 'docs: propagate signature and on_error parameter reference'
-state: in-progress
+state: done
 kind: docs
 origin: human
 created: '2026-09-05'
@@ -409,6 +409,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- cmd:grep -c on_error docs/result.md exit=0 sha256=a1fb50e6c86f
 designated_repro_test: null
 threat: null
 component: null
@@ -417,3 +419,18 @@ anchor_reason: null
 land_commit: null
 ```
 The on_error hook was described only in passing; the Propagation section now has a signature subsection with the parameter table, the hook's call shape and exception behaviour, and the DEBUG log, matching the catch section's style.
+
+## Done report
+
+propagate's factory form and hook had no reference entry; added one in the style of the catch section.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `cmd:grep -c on_error docs/result.md exit=0 sha256=a1fb50e6c86f` (cmd evidence, exit=0)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 0 error(s), 1009 warning(s), 2 waived
+- error-findings: none (measured, zero errors)
