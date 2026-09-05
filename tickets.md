@@ -185,7 +185,7 @@ Umbrella for the 0.1 line. Design record: docs/redesign-0.1.md (sections 1-3). C
 ```yaml
 id: T-0008
 title: 'modernize tooling: uv, ruff, ty, py.typed, CI, release, changelog, bump script'
-state: in-progress
+state: done
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -244,7 +244,7 @@ Modernized the toolchain to the owner's current frob-scaffold preferences: uv wi
 id: T-0009
 title: 'Result/Option redesign: Ok/Err/Some/Nothing classes, unwrap+propagate, notes,
   eq/hash/match/iter/pickle, catch'
-state: in-progress
+state: done
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -316,6 +316,12 @@ scope_changes:
   reason: narrow to the test files this ticket actually touched
   actor: logan
   at: '2026-09-05'
+evidence:
+- tests/test_result_api.py::test_match_ok
+- tests/test_result_api.py::test_notes_survive_map_err
+- tests/test_result_api.py::test_python_o_safety
+- tests/test_propagate.py::test_propagate_returns_err_container
+- tests/test_option_api.py::test_nothing_is_singleton
 designated_repro_test: null
 threat: null
 component: null
@@ -324,12 +330,31 @@ anchor_reason: null
 land_commit: null
 ```
 docs/redesign-0.1.md sections 2.1-2.4 and 3. Pure-Python canonical implementation with __slots__, mypy strict + ty clean. This module is the spec the native core must match exactly.
+
+## Done report
+
+Ok/Err/Some/Nothing became real classes so match and isinstance narrow; unwrap() under @propagate replaces the three-line early-return idiom found 651 times in frob; Err.note() carries context without touching the error payload; danger_* raise UnwrapError unconditionally instead of an assert that vanished under -O; Result.catch/@catching is the single exception boundary; value equality, hashing, iteration, pickling and a TypeError on bool() complete the surface. The pure-Python hot path is 3.7x faster than 0.0.4.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_result_api.py::test_match_ok` (pytest node id, verified passing when recorded)
+- `tests/test_result_api.py::test_notes_survive_map_err` (pytest node id, verified passing when recorded)
+- `tests/test_result_api.py::test_python_o_safety` (pytest node id, verified passing when recorded)
+- `tests/test_propagate.py::test_propagate_returns_err_container` (pytest node id, verified passing when recorded)
+- `tests/test_option_api.py::test_nothing_is_singleton` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 5 passed (from 5 evidence id(s))
+- gates: 44 error(s), 950 warning(s), 0 waived
+- error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, PRE001@tickets/T-0009, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/assets/typani-banner.svg, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
 <!-- ticket:T-0010 -->
 ```yaml
 id: T-0010
 title: 'typani-core: PyO3/maturin native Result/Option with pure-Python fallback and
   parity tests'
-state: planned
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -466,13 +491,98 @@ scope:
 - src/typani/singleton.pyi
 - frob.toml
 - pyproject.toml
-- tests/**
-- examples/**
-- docs/**
+- tests/test_unit.py
+- tests/test_backend.py
+- tests/test_result.py
+- tests/test_error_set.py
+- tests/test_error_set_result.py
+- tests/test_propagate.py
+- tests/test_option.py
+- tests/test_option_api.py
+- docs/error_set.md
+- examples/pipeline.py
+- examples/error_sets.py
+- .github/workflows/ci.yml
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: remove
+  glob: tests/**
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: remove
+  glob: docs/**
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: remove
+  glob: examples/**
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_unit.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_backend.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_result.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_error_set.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_error_set_result.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_propagate.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_option.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_option_api.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: docs/error_set.md
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: examples/pipeline.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: examples/error_sets.py
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: .github/workflows/ci.yml
+  reason: narrow to the files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
@@ -481,7 +591,6 @@ anchor_reason: null
 land_commit: null
 ```
 frob T-0024 fixed the @overload symref crash, so drop the [graph] exclude of singleton.py (T-0001). Resolve every ty diagnostic so check_skip_ty can go (T-0002). Keep the leaf surface minimal; update examples to the 0.1 idioms (propagate, match, notes).
-
 <!-- ticket:T-0013 -->
 ```yaml
 id: T-0013
