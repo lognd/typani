@@ -172,7 +172,7 @@ The capability ratchet lock that T-0015 introduced had no in-tree reference (REF
 id: T-0017
 title: 'fix: ty diagnostics frob''s check stage reports on examples/error_sets.py
   and option.py'
-state: done
+state: in-progress
 kind: bug
 origin: agent
 created: '2026-09-05'
@@ -187,10 +187,29 @@ runs_last_parallel_safe_reason: null
 scope:
 - examples/error_sets.py
 - src/typani/option.py
+- tests/test_option.py
+- tests/test_option_api.py
+- crates/typani-core/typani_core.pyi
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: add
+  glob: tests/test_option.py
+  reason: unused ignores and the stub mirror of the same signature change
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_option_api.py
+  reason: unused ignores and the stub mirror of the same signature change
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: crates/typani-core/typani_core.pyi
+  reason: unused ignores and the stub mirror of the same signature change
+  actor: logan
+  at: '2026-09-05'
 evidence:
 - tests/test_option_api.py::test_from_optional
 designated_repro_test: null
@@ -216,3 +235,6 @@ frob's ty stage runs per platform and surfaced three diagnostics the plain proje
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 0 error(s), 942 warning(s), 0 waived
 - error-findings: none (measured, zero errors)
+
+## Reopen log
+- 2026-09-05: the ty:ignore removal traded frob-stage warnings for plain-run errors; fix the variance properly with a method-level TypeVar
