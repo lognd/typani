@@ -154,7 +154,7 @@ Estate rollout from frob T-0736 (scaffold conformance, landed 2026-07-22): run f
 ```yaml
 id: T-0007
 title: 'typani 0.1: audit-driven redesign, native core, modernization'
-state: queued
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -172,6 +172,9 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- cmd:uv run python -c "import pathlib; t=pathlib.Path('docs/redesign-0.1.md').read_text();
+  print('design record sections:', t.count('\n## '))" exit=0 sha256=d65273fefd89
 designated_repro_test: null
 threat: null
 component: null
@@ -181,6 +184,20 @@ land_commit: null
 ```
 Umbrella for the 0.1 line. Design record: docs/redesign-0.1.md (sections 1-3). Children carry the work.
 
+## Done report
+
+Umbrella for the 0.1 line. Children T-0008..T-0014 delivered tooling modernization, the Result/Option redesign with propagation and notes, the typani-core native extension with pure fallback, the misuse lint, the ty reconciliation, the docs and README, and the verification against frob. Design record: docs/redesign-0.1.md.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `cmd:uv run python -c "import pathlib; t=pathlib.Path('docs/redesign-0.1.md').read_text(); print('design record sections:', t.count('\n## '))" exit=0 sha256=d65273fefd89` (cmd evidence, exit=0)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 42 error(s), 951 warning(s), 0 waived
+- error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
 <!-- ticket:T-0008 -->
 ```yaml
 id: T-0008
@@ -663,7 +680,7 @@ Every mypy suppression now either disappears behind a cast, a Mapping parameter 
 id: T-0013
 title: 'docs and README: banner, professional README, module docs for 0.1 API, strata
   model update, CHANGELOG'
-state: in-progress
+state: done
 kind: docs
 origin: agent
 created: '2026-09-05'
@@ -740,6 +757,10 @@ scope_changes:
   reason: narrow to the doc files this ticket actually touched
   actor: logan
   at: '2026-09-05'
+evidence:
+- 'cmd:uv run python -c "import pathlib,re; t=pathlib.Path(''README.md'').read_text();
+  assert ''typani-banner.svg'' in t and re.search(r''\bpropagate\b'', t); print(''README:
+  banner + propagate tour present,'', len(t.splitlines()), ''lines'')" exit=0 sha256=9c49ca8ece47'
 designated_repro_test: null
 threat: null
 component: null
@@ -757,19 +778,19 @@ README rewritten for 0.1 around the banner with a runnable tour, audit-backed ra
 (no changed files detected)
 
 ### Evidence
-(no evidence recorded)
+- `cmd:uv run python -c "import pathlib,re; t=pathlib.Path('README.md').read_text(); assert 'typani-banner.svg' in t and re.search(r'\bpropagate\b', t); print('README: banner + propagate tour present,', len(t.splitlines()), 'lines')" exit=0 sha256=9c49ca8ece47` (cmd evidence, exit=0)
 
 ### Captured claims
 - tests: 0 passed (from 0 evidence id(s))
-- gates: 43 error(s), 964 warning(s), 0 waived
-- error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/assets/typani-banner.svg, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
+- gates: 42 error(s), 966 warning(s), 0 waived
+- error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
 <!-- ticket:T-0014 -->
 ```yaml
 id: T-0014
 title: 'verify 0.1 against frob: ty, ruff, unit subset with the new typani installed
   in a scratch venv'
-state: in-progress
-kind: feature
+state: done
+kind: docs
 origin: agent
 created: '2026-09-05'
 priority: medium
@@ -791,6 +812,9 @@ no_scope_declared: false
 no_scope_declared_reason: null
 evidence:
 - tests/test_backend.py::test_backend_matches_typani_pure_env
+- cmd:uv run python -c "import pathlib; t=pathlib.Path('docs/redesign-0.1.md').read_text();
+  assert '## 4. Verification against frob' in t; print('section 4 present:', t.count('156'),
+  'mentions of the 156-test result')" exit=0 sha256=b96524863c30
 designated_repro_test: null
 threat: null
 component: null
