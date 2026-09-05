@@ -770,7 +770,7 @@ Waiting hours on the Intel macOS runner pool is not worth one wheel when the pur
 id: T-0028
 title: 'propagate: lexical scoping, on_error hook; lint: TYP004 mapped variant, TYP006/TYP007
   exception-boundary rules'
-state: in-progress
+state: done
 kind: feature
 origin: human
 created: '2026-09-05'
@@ -831,6 +831,12 @@ scope_changes:
     at; it needs the pure class, the native class, the stub and parity coverage
   actor: logan
   at: '2026-09-05'
+evidence:
+- tests/test_propagate.py::test_propagate_helper_unwrap_escapes
+- tests/test_propagate.py::test_propagate_async_helper_unwrap_escapes
+- tests/test_propagate.py::test_propagate_nested_decorated_helper_works
+- tests/test_result_api.py::test_wrap_err_err_mapping
+- tests/test_lint.py::test_typ006_result_catch_no_exceptions
 designated_repro_test: null
 threat: null
 component: null
@@ -848,13 +854,16 @@ The propagate contract had a dynamic-extent hole; it is now lexically scoped, ca
 (no changed files detected)
 
 ### Evidence
-(no evidence recorded)
+- `tests/test_propagate.py::test_propagate_helper_unwrap_escapes` (pytest node id, verified passing when recorded)
+- `tests/test_propagate.py::test_propagate_async_helper_unwrap_escapes` (pytest node id, verified passing when recorded)
+- `tests/test_propagate.py::test_propagate_nested_decorated_helper_works` (pytest node id, verified passing when recorded)
+- `tests/test_result_api.py::test_wrap_err_err_mapping` (pytest node id, verified passing when recorded)
+- `tests/test_lint.py::test_typ006_result_catch_no_exceptions` (pytest node id, verified passing when recorded)
 
 ### Captured claims
-- tests: 0 passed (from 0 evidence id(s))
-- gates: 18 error(s), 1012 warning(s), 0 waived
-- error-findings: DOC006@CODE_OF_CONDUCT.md, DOC006@docs/lint.md, DRIFT002@tests/test_result_api.py, OPAQUE001@src/typani/_propagate.py, OPAQUE001@tests/test_propagate.py, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py, SYS003@src/typani/_propagate.py
-
+- tests: 5 passed (from 5 evidence id(s))
+- gates: 19 error(s), 1011 warning(s), 0 waived
+- error-findings: DOC006@CODE_OF_CONDUCT.md, DOC006@docs/lint.md, DRIFT002@tests/test_result_api.py, OPAQUE001@src/typani/_propagate.py, OPAQUE001@tests/test_propagate.py, OPAQUE001@tests/test_scripts.py, PRE001@tickets/T-0028, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py, SYS003@src/typani/_propagate.py
 <!-- ticket:T-0029 -->
 ```yaml
 id: T-0029
