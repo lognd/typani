@@ -44,7 +44,31 @@ reason = "read by `make` outside this repo's own tracked-file graph, not referen
 
 [[refs.entrypoint]]
 path = "scripts/bump_version.py"
-reason = "release-time executable run by the `upload` Makefile target and CI, never imported by tracked source"
+reason = "release-time executable run by scripts/release.py and CI, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/install.py"
+reason = "bootstrap executable run by the `install` Makefile target, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/develop.py"
+reason = "bootstrap executable run by the `develop` Makefile target, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/clean.py"
+reason = "build executable run by the `clean` Makefile target and scripts/release.py's own logic path, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/build.py"
+reason = "build executable run by the `build` Makefile target, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/release.py"
+reason = "release-time executable run by the `release` Makefile target, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/typecheck_oracle.py"
+reason = "typecheck-oracle executable run by the `mypy` Makefile target, never imported by tracked source"
 
 [[refs.entrypoint]]
 path = "CHANGELOG.md"

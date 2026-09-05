@@ -219,9 +219,16 @@ reference: [docs/lint.md](docs/lint.md).
 ## Development
 
 ```bash
-uv sync --all-groups   # install typani plus every dev dependency group
-make develop            # build the optional native crate in place (maturin develop)
+uv run python scripts/install.py   # install typani plus every dev dependency group
+uv run python scripts/develop.py   # build the optional native crate in place (maturin develop)
 ```
+
+Bootstrap, build, and release live in `scripts/*.py`, each runnable
+directly on any platform (including Windows, which has no `make`). The
+`Makefile` targets (`install`, `develop`, `clean`, `build`, `release`,
+`mypy`) are one-line wrappers around the same scripts, so `make develop`
+and `uv run python scripts/develop.py` do exactly the same thing. To cut
+a release: `uv run python scripts/release.py --bump patch --tag --push`.
 
 This is a [frob](https://github.com/lognd/frob)-enabled repository; frob
 is the interface for everything past install (see the Makefile's own
