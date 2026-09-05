@@ -854,3 +854,34 @@ The propagate contract had a dynamic-extent hole; it is now lexically scoped, ca
 - tests: 0 passed (from 0 evidence id(s))
 - gates: 18 error(s), 1012 warning(s), 0 waived
 - error-findings: DOC006@CODE_OF_CONDUCT.md, DOC006@docs/lint.md, DRIFT002@tests/test_result_api.py, OPAQUE001@src/typani/_propagate.py, OPAQUE001@tests/test_propagate.py, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py, SYS003@src/typani/_propagate.py
+
+<!-- ticket:T-0029 -->
+```yaml
+id: T-0029
+title: 'typani-core: cache the _rebuild_err lookup used by Err.__reduce__'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: low
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- crates/typani-core/src/result.rs
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Deferred from T-0010: Err.__reduce__ imports typani.result and fetches _rebuild_err on every pickle; cache it in a PyOnceLock like UNWRAP_ERROR. Pickling is not the hot path, so this waits for a native-core pass.
