@@ -401,3 +401,34 @@ The owner's rule is that make may only wrap platform-agnostic scripts. All recip
 - tests: 2 passed (from 2 evidence id(s))
 - gates: 10 error(s), 980 warning(s), 0 waived
 - error-findings: OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_scripts.py
+
+<!-- ticket:T-0021 -->
+```yaml
+id: T-0021
+title: 'CI: mypy oracle cannot find typani_core on pure-only runners'
+state: in-progress
+kind: bug
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- mypy-py310.ini
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Same class as T-0019 one step later: the mypy oracle step fails on runners without the native crate because the optional typani_core import has no stub there. ignore_missing_imports for that one module.
