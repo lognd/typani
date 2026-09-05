@@ -246,7 +246,7 @@ Filed: none (all findings were fixable in scope).
 id: T-0018
 title: 'typani.lint JSON envelope: version, files_scanned, findings, and per-finding
   symref'
-state: in-progress
+state: done
 kind: feature
 origin: human
 created: '2026-09-05'
@@ -267,6 +267,9 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_lint.py::test_cli_json_files_scanned_counts_all_python_files
+- tests/test_lint.py::test_symref_module_level
 designated_repro_test: null
 threat: null
 component: null
@@ -275,3 +278,19 @@ anchor_reason: null
 land_commit: null
 ```
 Consumer feedback (frob T-3849): a bare top-level array is the silent-zero shape -- [] from 200 scanned files and [] from zero matched files are indistinguishable -- and carries no version for a consumer to check the format against. Emit {version: 1, files_scanned: N, findings: [...]} with the finding fields unchanged, plus an optional symref (path::qualname) per finding so frob can bind findings to graph symbols instead of line numbers.
+
+## Done report
+
+frob's consumer review asked for two things that turn an empty result from ambiguous into measured: a files_scanned count and a versioned envelope, plus a symref per finding so findings bind to graph symbols rather than line numbers. All three are in; a zero-match run now warns on stderr.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_lint.py::test_cli_json_files_scanned_counts_all_python_files` (pytest node id, verified passing when recorded)
+- `tests/test_lint.py::test_symref_module_level` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 2 passed (from 2 evidence id(s))
+- gates: 1 error(s), 942 warning(s), 0 waived
+- error-findings: PRE001@tickets/T-0018
