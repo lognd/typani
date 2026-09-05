@@ -662,3 +662,35 @@ Standard community set in the uv/ruff/ty/pytest style: LICENSE (missing until no
 - tests: 0 passed (from 0 evidence id(s))
 - gates: 13 error(s), 984 warning(s), 0 waived
 - error-findings: DOC006@CODE_OF_CONDUCT.md, OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/check.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_result_api.py, SELFAUDIT001@tests/test_scripts.py
+
+<!-- ticket:T-0026 -->
+```yaml
+id: T-0026
+title: 'release.yml: interpreter lookup under set -e and Intel macOS leg on an Intel
+  runner'
+state: in-progress
+kind: docs
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.1'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- .github/workflows/release.yml
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Second dispatch: ls of two candidate interpreter paths under set -e exits 2 on Linux and Windows; macos-latest is arm64 so the cross-built x86_64 wheel cannot be installed for the smoke test. Branch on the venv layout and run the Intel leg on macos-13.
