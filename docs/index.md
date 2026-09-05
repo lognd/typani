@@ -14,3 +14,4 @@ the authoritative API surface.
 - [Singleton](singleton.md) -- singleton decorator and base classes
 - [Design model](design.md) -- `design/typani.strata`, the provable
   system-design model of typani's own module graph
+- [typani.lint](lint.md) -- stdlib-only misuse checker, `python -m typani.lint`

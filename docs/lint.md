@@ -1,0 +1,386 @@
+# typani.lint
+
+`python -m typani.lint` is a stdlib-only static checker for code that
+*uses* typani's `Result`/`Option` types. It has no dependencies (only
+`ast`, `argparse`, `json`, `pathlib`, `logging`, `dataclasses`) and never
+imports from `typani`'s main package -- it is a dev-time tool, not a
+runtime one.
+
+## Why this exists
+
+`docs/redesign-0.1.md` section 1.2 traces a cluster of real bugs back to
+a small set of repeatable typani misuse shapes: a property called as a
+method (`danger_ok()`), truthiness tests on a payload that can be falsy
+(`if r.ok:` misreading `Ok(0)` as failure), a `Result`/`Option` value that
+is constructed or chained and then silently discarded, hand-rolled
+propagation boilerplate that duplicates what `unwrap()`/`@propagate`
+already do, and `assert`-based invariants that vanish under `python -O`.
+`typani.lint` turns each of those into a mechanical, CI-checkable rule
+(section 2.6 of the same document) instead of relying on review to catch
+them again every time.
+
+## Usage
+
+```console
+$ python -m typani.lint                      # lint "." by default
+$ python -m typani.lint src tests             # lint specific paths
+$ python -m typani.lint --json src            # JSON array on stdout
+$ python -m typani.lint --no-info src         # hide info-severity findings
+$ python -m typani.lint --select TYP001 src   # only run one rule
+$ python -m typani.lint --ignore TYP004 src   # drop one rule
+$ python -m typani.lint --exclude '*/generated/*' src
+```
+
+Text output is one line per finding:
+
+```
+src/app/queue.py:42:7: TYP002 'ok' is the payload or None; falsy payloads (0, '', []) will be misread -- test 'is_ok' instead
+```
+
+Errors are printed before infos; each group is sorted by
+`(path, line, col)`. A summary line always goes to **stderr**:
+
+```
+typani.lint: 2 error(s), 1 info(s) in 37 file(s)
+```
+
+### Exit codes
+
+`0` when no error-severity finding survives `--select`/`--ignore`; `1`
+otherwise. `--no-info` only changes what is *printed* -- it never changes
+the exit code, since info findings never gate the exit code in the first
+place.
+
+### `check_paths` walking rules
+
+`*.py` files are found recursively under each given path. `.venv`,
+`.git`, `__pycache__`, `node_modules`, `build`, and `dist` directories are
+always skipped, as is `tests/fixtures/lint/` in this repo (it holds
+deliberate misuse fixtures for `tests/test_lint.py`, not real code).
+`--exclude GLOB` (repeatable) adds further glob exclusions, matched with
+`pathlib.PurePath.match`.
+
+## Rules
+
+### TYP001 -- property called as a method (error)
+
+`is_ok`, `is_err`, `ok`, `err`, `danger_ok`, `danger_err`, `notes`,
+`is_some`, `is_nothing`, `some`, `danger_some`, `value`, and `error` are
+all properties. Calling one with zero arguments is almost always a typo
+for the property access (`x.danger_ok()` instead of `x.danger_ok`); this
+is the single most-repeated typani footgun on record (section 1.2).
+
+```python
+# bad
+if result.is_ok():
+    ...
+value = result.danger_ok()
+
+# good
+if result.is_ok:
+    ...
+value = result.danger_ok
+```
+
+A call with any positional or keyword argument is left alone, since that
+is a strong signal it is an unrelated method on a different object (e.g.
+`dict.get()`).
+
+### TYP002 -- truthiness of a payload attribute (error)
+
+`.ok`, `.err`, and `.some` hold the payload itself (or `None`), not a
+boolean. `if result.ok:` misreads `Ok(0)`, `Ok("")`, and `Ok([])` as
+failure.
+
+```python
+# bad
+r = Ok(0)
+if r.ok:
+    ...  # never runs -- 0 is falsy
+
+# good
+if r.is_ok:
+    ...
+```
+
+This rule only fires when the checker has direct local evidence that the
+subject is actually a `Result`/`Option`: it is a call to `Ok`/`Err`/
+`Some`/`Nothing`, a call to a same-module function/method annotated to
+return one, or a name bound to one of those earlier in the same function.
+A bare `if report.ok:` on an unannotated parameter is left alone. This
+restriction exists because the unrestricted (name-only) version of the
+rule is dominated by false positives on real code: scanning frob's
+~650-file `src/` tree, matching purely on the attribute name `.ok` (with
+no evidence requirement) produced 16 hits, and by-hand inspection showed
+**all 16** were unrelated domain objects with their own `.ok` boolean
+field (`report.ok`, `crate.ok`, a cached coverage result's `.ok`) rather
+than a typani `Result`. Restricting to subjects with local
+Result/Option-producing evidence reduced that to 0 false positives while
+keeping every genuine typani misuse case reachable through
+`check_source`'s own test fixtures. `typani.lint` has no type inference
+and never will (stdlib `ast` only) -- this evidence-based restriction is
+the deliberate trade-off for staying conservative rather than chasing
+every truthy-`.ok` field by name.
+
+### TYP003 -- discarded Result/Option (error)
+
+A `Result`/`Option` that is constructed, returned from a same-module
+function, or chained off a combinator, and then never assigned, returned,
+or otherwise inspected, is the single largest bug family in section 1.2
+("silently dropped/ignored/discarded", 63 changelog titles).
+
+```python
+# bad
+def save(path: Path) -> "Result[Unit, IOError]":
+    ...
+
+save(path)          # the failure is thrown away
+
+r = save(path)
+r.map(log_saved)    # r.map(...) allocates a new Result that is also thrown away
+
+# good
+result = save(path)
+if result.is_err:
+    handle(result.danger_err)
+```
+
+Flagged shapes, all as a bare expression-statement:
+
+- `Ok(...)`, `Err(...)`, `Some(...)`, `Nothing()`
+- a call to a function defined at module level in the same file, or a
+  `self.<name>(...)` call to a method defined one level inside a class in
+  the same file, whose return annotation (unparsed, forward-reference
+  strings included) is `Result[...]`, `Option[...]`, a bare `Result`/
+  `Option`, or `typani.result.Result[...]`/`typani.option.Option[...]`
+- `<expr>.map(...)`, `.map_err(...)`, `.and_then(...)`, `.or_else(...)`,
+  `.note(...)`, `.filter(...)`, `.ok_or(...)`, `.ok_or_else(...)`, or
+  `.to_option(...)` where `<expr>` is itself one of the constructor calls
+  above, or a name assigned one of those shapes earlier in the same
+  function
+
+Assigning the value (`x = Ok(1)`), returning it, or passing it onward is
+never flagged -- only the fully-discarded, bare-statement shape is.
+`.inspect(...)`/`.inspect_err(...)` are deliberately excluded from this
+set: they exist precisely to be called for their side effect with the
+return value discarded (Rust's `inspect` idiom), so `Ok(1).inspect(print)`
+as a bare statement is correct, not a bug.
+
+### TYP004 -- propagation boilerplate (info)
+
+```python
+# flagged (informational)
+if loaded.is_err:
+    return Err(loaded.danger_err)
+queue = loaded.danger_ok
+
+# suggested
+queue = loaded.unwrap()   # inside a function decorated with @propagate
+```
+
+Flags the exact `if X.is_err: return Err(X.danger_err)` shape (and its
+`Option` twin, `if X.is_nothing: return Nothing()`) -- see
+`docs/redesign-0.1.md` section 1.3 for the Rust-`?`-style propagation
+this boilerplate stands in for. Informational only: the boilerplate is
+correct, just longer than it needs to be.
+
+### TYP005 -- assert stripped under `-O` (info)
+
+```python
+# flagged (informational)
+assert result.is_ok
+value = result.danger_ok   # under `python -O` this silently returns garbage
+
+# good
+value = result.unwrap()          # raises UnwrapError on Err
+value = result.expect("loaded")  # raises UnwrapError with a message
+```
+
+`assert` statements are compiled out entirely under `python -O`; an
+`assert result.is_ok` immediately followed by a statement that reads
+`result.danger_ok` (or `.danger_err`/`.danger_some`) loses its guard
+silently in that mode. Flags an `assert X.is_ok`/`X.is_err`/`X.is_some`
+immediately followed, in the same statement list, by any statement that
+somewhere contains `X.danger_ok`/`X.danger_err`/`X.danger_some` on the
+same subject `X`.
+
+## Suppression
+
+A trailing comment on the offending line suppresses that line's
+findings:
+
+```python
+if r.ok:  # typani: ignore
+    ...
+
+if r.ok:  # typani: ignore[TYP002]
+    ...
+```
+
+The bare form suppresses every rule on that line; the bracketed form
+(comma-separated rule ids allowed) suppresses only the named rule(s).
+
+A `# typani: skip-file` comment anywhere in the first 5 lines of a file
+skips the whole file.
+
+## API reference
+
+`typani.lint` exposes a small importable API for embedding the checker in
+another tool, alongside the CLI.
+
+### `Finding`
+
+```python
+Finding(rule: str, path: str, line: int, col: int, message: str, severity: str)
+```
+
+One lint hit: a frozen dataclass with the rule id (e.g. `"TYP001"`), the
+file path, 1-based line, 0-based column, a human-readable message, and
+`severity` (`"error"` or `"info"`).
+
+### `check_source`
+
+```python
+check_source(source: str, path: str = "<string>") -> list[Finding]
+```
+
+Lints one in-memory source string. A syntax error never raises -- it
+becomes a single `Finding(rule="TYP000", severity="error", ...)` instead.
+Honors `# typani: skip-file` and `# typani: ignore[...]` on the given
+source.
+
+### `check_paths`
+
+```python
+check_paths(paths: Iterable[Path], *, exclude: Iterable[str] = ()) -> list[Finding]
+```
+
+Walks each path for `*.py` files (see "`check_paths` walking rules"
+above) and runs `check_source` on each, returning every finding sorted by
+`(path, line, col)`.
+
+### `is_skip_file`
+
+```python
+is_skip_file(source: str) -> bool
+```
+
+`True` when a `typani: skip-file` marker appears in the first 5 lines of
+*source*.
+
+### `apply_suppressions`
+
+```python
+apply_suppressions(source: str, findings: list[Finding]) -> list[Finding]
+```
+
+Drops any finding whose source line carries a matching
+`# typani: ignore` (or rule-specific `# typani: ignore[TYP00N]`) comment.
+
+### `render_text`
+
+```python
+render_text(findings: list[Finding]) -> str
+```
+
+Renders findings as `path:line:col: RULE message` lines, error-severity
+findings before info-severity ones, each group sorted.
+
+### `render_json`
+
+```python
+render_json(findings: list[Finding]) -> str
+```
+
+Renders findings as a JSON array of finding dicts (see "JSON schema"
+below), preserving the given order.
+
+### `build_parser`
+
+```python
+build_parser() -> argparse.ArgumentParser
+```
+
+Builds the `argparse` parser backing the CLI described in "Usage" above.
+
+### `main`
+
+```python
+main(argv: list[str] | None = None) -> int
+```
+
+Runs the CLI end to end -- scan, filter, print the report -- and returns
+the process exit code (see "Exit codes" above).
+
+## JSON schema
+
+`--json` prints a JSON array; each element is:
+
+```json
+{
+  "rule": "TYP002",
+  "path": "src/app/queue.py",
+  "line": 42,
+  "col": 7,
+  "message": "'ok' is the payload or None; falsy payloads (0, '', []) will be misread -- test 'is_ok' instead",
+  "severity": "error"
+}
+```
+
+`severity` is `"error"` or `"info"`. A syntax error in a scanned file
+produces one `TYP000`/`"error"` finding for that file instead of raising.
+
+## CI recipe
+
+```yaml
+- name: typani.lint
+  run: python -m typani.lint src tests --no-info
+```
+
+Drop `--no-info` to also print (but not fail on) TYP004/TYP005 hits; add
+`--json` and pipe to a report step if the CI system wants structured
+output instead.
+
+## Field results
+
+`typani.lint` was run against `frob` (version `0.530.0`, 649 `*.py` files
+under `src/`) as a real-world false-positive/true-positive check --
+`frob` uses typani's `Result`/`Option` types extensively but was not
+written with this checker in mind.
+
+`--no-info` (errors only): 4 findings, all TYP003, all confirmed true
+positives by inspection -- each is a bare-statement call to a function
+genuinely annotated to return a `Result`:
+
+| File | Line | Rule | Discarded call |
+|------|------|------|-----------------|
+| `frob/gates/_coverage.py` | 1083 | TYP003 | `write_coverage_lock(...)` (`-> Result[Unit, GateError]`) |
+| `frob/serve/_daemon.py` | 554 | TYP003 | `_poll_verify_worker(...)` (`-> Result[WorkerOutcome, WorkerError] \| None`) |
+| `frob/tickets/_land.py` | 2216 | TYP003 | `_land_plan_unwind_after_merge(...)` (`-> Result[None, LandError]`) |
+| `frob/tickets/_land.py` | 6959 | TYP003 | `_check_tdd_order(...)` (`-> Result[None, LandError]`) |
+
+With info-severity findings included: TYP004 (propagation boilerplate)
+fired 649 times -- close to `docs/redesign-0.1.md` section 1.1's
+independent grep-based estimate of 651 `if x.is_err: return
+Err(x.danger_err)`-shaped blocks, corroborating that the AST rule
+captures the same real pattern the manual audit found. TYP005 fired 0
+times (that shape is rarer in practice). TYP002 fired 0 times after the
+evidence-based tightening described above; the earlier, untightened
+version had fired 16 times, all 16 confirmed false positives (see
+TYP002's rule section).
+
+## frob recipe
+
+As of this writing frob's `[policy]` table (`frob.toml`) supports three
+rule kinds -- `forbidden-import`, `pattern` (a tree-sitter query), and
+`norm` (a diff-shape rule) -- and has **no command-runner policy kind**
+(see `/home/logan/projects/frob/docs/modules/gates.md`, the
+`PolicyKind`/`PolicyRule` section: "the three rule kinds `frob.toml`'s
+`[policy]` table supports at alpha"). There is therefore no
+`[[policy.command]]`-shaped way to wire `python -m typani.lint` into
+`frob check` directly today. Run it as a plain CI step (above) in a
+frob-enabled repo the same way as anywhere else. If frob later adds a
+command-based policy kind, this section should be revisited to wire
+`typani.lint` in natively; no `frob:todo` is left for this in
+`src/typani/lint` itself since the missing capability lives in frob, a
+different project, not in this repo.
