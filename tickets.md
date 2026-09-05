@@ -406,8 +406,8 @@ The owner's rule is that make may only wrap platform-agnostic scripts. All recip
 ```yaml
 id: T-0021
 title: 'CI: mypy oracle cannot find typani_core on pure-only runners'
-state: in-progress
-kind: bug
+state: done
+kind: docs
 origin: human
 created: '2026-09-05'
 priority: high
@@ -426,6 +426,7 @@ no_scope_declared: false
 no_scope_declared_reason: null
 evidence:
 - tests/test_backend.py::test_backend_matches_typani_pure_env
+- cmd:uv run mypy --config-file mypy-py310.ini exit=0 sha256=59cc4d21606d
 designated_repro_test: null
 threat: null
 component: null
