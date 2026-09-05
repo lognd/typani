@@ -156,3 +156,51 @@ def test_develop_exits_zero_with_warning_when_manifest_missing(
         with pytest.raises(SystemExit) as excinfo:
             develop.main()
         assert excinfo.value.code == 0
+
+
+# frob:tests scripts/check.py::main
+def test_check_dry_run_runs_frob_then_both_backends(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    _load_module("_common")
+    check = _load_module("check")
+
+    calls: list[list[str]] = []
+
+    def fake_subprocess_run(
+        argv: list[str], **kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        calls.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0)
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(subprocess, "run", fake_subprocess_run)
+        mp.setattr(check, "repo_root", lambda: tmp_path)
+        mp.setattr(sys, "argv", ["check.py", "--dry-run"])
+        with caplog.at_level("INFO"):
+            assert check.main() == 0
+
+    assert calls == []
+    lines = [r.getMessage() for r in caplog.records if r.getMessage().startswith("+ ")]
+    assert lines == [
+        "+ frob check",
+        "+ uv run pytest -q -n 2",
+        "+ uv run pytest -q -n 2",
+    ]
+    assert "gate 3/3" in caplog.text
+
+
+# frob:tests scripts/check.py::main
+def test_check_skip_frob_drops_the_first_gate(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    _load_module("_common")
+    check = _load_module("check")
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(check, "repo_root", lambda: tmp_path)
+        mp.setattr(sys, "argv", ["check.py", "--dry-run", "--skip-frob"])
+        with caplog.at_level("INFO"):
+            assert check.main() == 0
+    messages = [r.getMessage() for r in caplog.records]
+    assert "+ frob check" not in messages
+    assert messages.count("+ uv run pytest -q -n 2") == 2

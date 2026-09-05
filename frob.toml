@@ -117,3 +117,7 @@ reason = "TYP003 fixture loaded by test_lint.py via file path at test time, not 
 [[refs.entrypoint]]
 path = "src/typani/lint/__main__.py"
 reason = "`python -m typani.lint` entry point invoked by module path, never imported by name from tracked source"
+
+[[refs.entrypoint]]
+path = "scripts/check.py"
+reason = "the local gate front door, run by `make check` and by hand; never imported by tracked source"

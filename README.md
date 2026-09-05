@@ -232,7 +232,7 @@ a release: `uv run python scripts/release.py --bump patch --tag --push`.
 
 This is a [frob](https://github.com/lognd/frob)-enabled repository; frob
 is the interface for everything past install (see the Makefile's own
-comment on this). `frob check` is the gate, `frob test` runs the
+comment on this). `uv run python scripts/check.py` (or `make check`) is the local gate: it runs `frob check` and the test suite under both backends. `frob check` alone is the obligation gate, `frob test` runs the
 touched-set test suite, `frob format` applies formatting.
 
 The optional native core lives in `crates/typani-core`: `src/lib.rs`

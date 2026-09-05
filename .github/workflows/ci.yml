@@ -101,39 +101,9 @@ jobs:
         if: steps.native-check.outputs.present == 'true'
         run: uv run pytest -q
 
-  frob-check:
-    runs-on: ubuntu-latest
-    # frob is not published on PyPI yet, so this job cannot install it and
-    # reports UNMEASURED by design. Advisory (continue-on-error) until a
-    # frob release exists; the gate is enforced locally on every commit
-    # (frob check is the pre-commit interface, see Makefile). Remove the
-    # flag when `uv tool install frob` resolves.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: install python
-        run: uv python install 3.13
-
-      - name: install
-        run: uv sync --all-groups
-
-      # A missing/broken frob install must be a loud, non-green CI status,
-      # never a quiet notice on an otherwise green build (frob is pre-1.0,
-      # see frob's own CI idiom for this pattern).
-      - name: install frob
-        run: uv tool install frob || true
-
-      - name: frob check
-        run: |
-          if command -v frob >/dev/null 2>&1 && frob graph --help >/dev/null 2>&1; then
-            frob check
-          else
-            echo "::error::frob check could not run -- frob is not installed or not working (install: uv tool install frob). This gate is UNMEASURED, not clean; fix the install rather than ignoring this failure."
-            exit 1
-          fi
+  # frob check (the obligation-graph gate) is NOT run here yet: frob has no
+  # stable PyPI release, so a CI job could only ever report UNMEASURED. It is
+  # the local gate instead: `uv run python scripts/check.py` (or `make check`)
+  # runs frob check plus the test suite under both backends. Reintroduce a
+  # frob-check job (see git history of this file for its shape) once
+  # `uv tool install frob` resolves to a release.

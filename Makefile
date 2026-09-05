@@ -1,4 +1,4 @@
-.PHONY: install develop clean build release mypy
+.PHONY: install develop clean build release mypy check
 
 # T-0020 (per T-3400 idiom): this Makefile intentionally does NOT ship
 # format/lint/typecheck/test/coverage/check targets. This is a
@@ -35,3 +35,5 @@ release:
 
 mypy:
 	uv run python scripts/typecheck_oracle.py $(ARGS)
+check:
+	uv run python scripts/check.py $(ARGS)

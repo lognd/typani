@@ -62,7 +62,6 @@ jobs:
 
   build-native:
     # T-0010: guarded -- no-op until crates/typani-core/Cargo.toml exists.
-    if: hashFiles('crates/typani-core/Cargo.toml') != ''
     strategy:
       fail-fast: false
       matrix:
@@ -110,15 +109,9 @@ jobs:
           path: dist/*
 
   publish:
+    # Publish only when the CI gate and BOTH builds succeeded; a failed or
+    # skipped native matrix must never ship a pure-only release by accident.
     needs: [verify-ci, build-pure, build-native]
-    # build-native is itself conditionally skipped when the native crate
-    # does not exist yet; always() lets publish still run off build-pure
-    # alone in that case, while still failing if build-native ran and failed.
-    if: |
-      always() &&
-      needs.verify-ci.result == 'success' &&
-      needs.build-pure.result == 'success' &&
-      (needs.build-native.result == 'success' || needs.build-native.result == 'skipped')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
