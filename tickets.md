@@ -69,7 +69,7 @@ Deferred from T-0010: Err.__reduce__ imports typani.result and fetches _rebuild_
 id: T-0030
 title: 'frob compliance sweep after 0.2 work: DOC006 pointers, DRIFT002 test edge,
   OPAQUE001, REF001 scripts/_common, strata self-audit'
-state: in-progress
+state: done
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -96,6 +96,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_propagate.py::test_propagate_on_error_hook_called
 designated_repro_test: null
 threat: null
 component: null
@@ -104,3 +106,18 @@ anchor_reason: null
 land_commit: null
 ```
 Drive frob check from 24 errors to zero after T-0025 and T-0028 landed.
+
+## Done report
+
+The 0.2 propagate work and the community files left 24 gate errors: misread doc pointers, a stale test edge, three opaque-indirection findings, an orphan helper reference and new capability sites. Real fixes where possible, three waivers with reasons, ratchet raised with reasons.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_propagate.py::test_propagate_on_error_hook_called` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 1 error(s), 1023 warning(s), 2 waived
+- error-findings: E501@/home/logan/projects/typani/src/typani/_propagate.py
