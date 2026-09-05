@@ -223,3 +223,38 @@ Cut 0.2.0: lexically scoped propagate, error return trace, wrap_err, unwrap(err=
 - tests: 0 passed (from 0 evidence id(s))
 - gates: 0 error(s), 1007 warning(s), 2 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0033 -->
+```yaml
+id: T-0033
+title: bump_version.py did not move the typani-core exact pin in the native extra
+state: in-progress
+kind: bug
+origin: human
+created: '2026-09-05'
+priority: critical
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- scripts/bump_version.py
+- tests/test_bump_version.py
+- pyproject.toml
+- uv.lock
+- CHANGELOG.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+The 0.2.0 bump left native = [typani-core==0.1.0], which would have published typani 0.2.0 pinning the wrong core; the skew guard would have fallen back to pure silently for every typani[native] user. The script now rewrites the pin and refuses if it is not found exactly once; a test covers it. Caught before the release dispatch.
