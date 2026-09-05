@@ -71,10 +71,10 @@ jobs:
           - os: ubuntu-latest
             target: aarch64
             manylinux: auto
-          # macos-latest runners are arm64; the Intel wheel must be built
-          # and smoke-tested on an Intel runner or the install cannot match.
-          - os: macos-13
-            target: x86_64
+          # No macOS x86_64 wheel: macos-latest runners are arm64 (a
+          # cross-built Intel wheel cannot be smoke-tested there) and the
+          # Intel macos-13 pool is scarce enough to stall a release for
+          # hours. Intel Mac users get the pure-Python backend automatically.
           - os: macos-latest
             target: aarch64
           - os: windows-latest

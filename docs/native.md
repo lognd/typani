@@ -133,3 +133,10 @@ directly. `crates/typani-core/src/result.rs`'s "tightest possible code
 path" comments track where each operation stands relative to that intent;
 frob:todo T-0010 marks further constant-folding of the module lookups as
 follow-up work, not a blocker for this ticket.
+
+## Platforms with wheels
+
+Native wheels are published for manylinux x86_64 and aarch64, macOS
+arm64, and Windows x86_64. Intel macOS and Windows arm64 have no wheel
+yet; `typani[native]` cannot resolve there and plain `typani` uses the
+pure-Python backend automatically.
