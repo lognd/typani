@@ -121,7 +121,7 @@ Every doc code block is bound with a frob:describes anchor, build and tool input
 ```yaml
 id: T-0016
 title: 'docs: describe the committed capability ratchet lock in docs/design.md'
-state: in-progress
+state: done
 kind: docs
 origin: agent
 created: '2026-09-05'
@@ -139,6 +139,10 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- cmd:uv run python -c "import pathlib; t=pathlib.Path('docs/design.md').read_text();
+  assert 'capability-via-ratchet.lock.json' in t; print('design.md references the
+  ratchet lock')" exit=0 sha256=b407b8542d57
 designated_repro_test: null
 threat: null
 component: null
@@ -147,3 +151,18 @@ anchor_reason: null
 land_commit: null
 ```
 Follow-up to T-0015: the REF001 finding on docs/design/registry/capability-via-ratchet.lock.json is closed by describing the lock in docs/design.md so the file has an in-tree reference.
+
+## Done report
+
+The capability ratchet lock that T-0015 introduced had no in-tree reference (REF001); docs/design.md now explains what it is and why a new capability site fails frob check until the ceiling is raised deliberately.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `cmd:uv run python -c "import pathlib; t=pathlib.Path('docs/design.md').read_text(); assert 'capability-via-ratchet.lock.json' in t; print('design.md references the ratchet lock')" exit=0 sha256=b407b8542d57` (cmd evidence, exit=0)
+
+### Captured claims
+- tests: 0 passed (from 0 evidence id(s))
+- gates: 1 error(s), 938 warning(s), 0 waived
+- error-findings: unresolved-attribute@examples/error_sets.py
