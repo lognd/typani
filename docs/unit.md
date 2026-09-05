@@ -8,6 +8,7 @@ type with exactly one value, useful only for its presence.
 
 ## Usage
 
+<!-- frob:describes src/typani/unit.py::Unit -->
 ```python
 from typani.unit import Unit
 

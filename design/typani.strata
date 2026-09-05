@@ -203,6 +203,64 @@ node lint : trusted {
     may "fs-read" via "src/typani/lint/__init__.py";
 }
 
+// T-0015: support nodes for trees `frob sys audit`'s vet pass observes
+// real capabilities in but that fall outside src/typani/**'s runtime
+// import graph -- see docs/design.md#support-nodes for why each exists.
+
+// crates/typani-core/src/**: the Rust PyO3 extension. `ffi` covers the
+// Python/Rust call boundary every #[pyfunction]/#[pyclass] crosses.
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+node native_core : trusted {
+    clearance Public;
+    code "crates/typani-core/src/**";
+    may "ffi" via "crates/typani-core/src/lib.rs";
+}
+
+// bench/bench_result.py: the microbenchmark script behind docs/native.md's
+// numbers. `deserialize` covers the pickle round-trip it measures.
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+node bench : trusted {
+    clearance Public;
+    code "bench/bench_result.py";
+    may "deserialize" via "bench/bench_result.py";
+}
+
+// scripts/bump_version.py: the release-time version bump script run by
+// the Makefile's `upload` target. Reads and rewrites the version literal
+// in-place.
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+node scripts : trusted {
+    clearance Public;
+    code "scripts/bump_version.py";
+    may "fs-read" via "scripts/bump_version.py";
+    may "fs-write" via "scripts/bump_version.py";
+}
+
+// The subset of tests/** the vet pass observes real capabilities in
+// (fixtures/config deserialize test data, tests monkeypatch or read
+// os.environ, test_lint.py execs `python -m typani.lint` as a
+// subprocess, and several tests read/write temp files). Deliberately
+// narrower than tests/** as a whole: the other test files (test_result.py,
+// test_option.py, ...) import typani's own modules directly and are left
+// unmodeled here, same as before T-0015 -- widening this node's code=
+// glob to tests/** would turn every one of those ordinary test imports
+// into an undeclared cross-component SYS003 finding against this node.
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+node tests : trusted {
+    clearance Public;
+    code "tests/parity/cases.py" "tests/test_backend.py" "tests/test_bump_version.py" "tests/test_lint.py" "tests/test_option_api.py" "tests/test_result_api.py";
+    may "deserialize" via "tests/parity/cases.py", "tests/test_option_api.py", "tests/test_result_api.py";
+    may "eval" via "tests/parity/cases.py", "tests/test_bump_version.py";
+    may "exec" via "tests/test_backend.py", "tests/test_lint.py", "tests/test_result_api.py";
+    may "env.read" via "tests/test_backend.py";
+    may "fs.read" via "tests/test_bump_version.py", "tests/test_lint.py";
+    may "fs.write" via "tests/test_bump_version.py", "tests/test_lint.py";
+}
+
 // -- flows ------------------------------------------------------------
 
 // api re-exports every leaf module's public names (__init__.py's import
@@ -324,6 +382,47 @@ flow f_option_impl : option_mod -> impl_mod { label Public; attr local; }
 // frob:doc docs/native.md#backend-selection
 // frob:ticket T-0013
 flow f_impl_version : impl_mod -> version_mod { label Public; attr local; }
+
+// tests: `import typani` (parity/cases.py, test_backend.py).
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_tests_api : tests -> api { label Public; attr local; }
+// tests: `from typani.option import ...` (parity/cases.py,
+// test_option_api.py, test_result_api.py).
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_tests_option : tests -> option_mod { label Public; attr local; }
+// tests: `from typani.result import ...` (parity/cases.py,
+// test_option_api.py, test_result_api.py).
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_tests_result : tests -> result_mod { label Public; attr local; }
+// tests: `from typani._exceptions import UnwrapError` (test_option_api.py,
+// test_result_api.py).
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_tests_exceptions : tests -> exceptions_mod { label Public; attr local; }
+// tests: `from typani.lint import ...` (test_lint.py).
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_tests_lint : tests -> lint { label Public; attr local; }
+// tests: `import typani._impl as _impl` (test_backend.py).
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_tests_impl : tests -> impl_mod { label Public; attr local; }
+
+// bench/bench_result.py: `import typani` plus `from typani.option import
+// Nothing, Some` and `from typani.result import Err, Ok` to benchmark the
+// public Result/Option construction/accessor hot path.
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_bench_api : bench -> api { label Public; attr local; }
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_bench_option : bench -> option_mod { label Public; attr local; }
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0015
+flow f_bench_result : bench -> result_mod { label Public; attr local; }
 
 // -- claims ------------------------------------------------------------
 

@@ -6,7 +6,13 @@ lower per-call overhead. It is an accelerator, never a required
 dependency: every public behavior -- methods, dunders, error types, error
 *messages*, pickling -- is identical between the native and pure-Python
 implementations, and typani runs correctly with only the pure-Python
-package installed.
+package installed. `crates/typani-core/src/lib.rs` wires up the `#[pymodule]`
+entry point that exposes the Rust kernels to Python;
+`crates/typani-core/src/option.rs` implements `Some`/`Nothing`, the
+`Option`-side counterpart to `result.rs`'s `Ok`/`Err`.
+`crates/typani-core/typani_core.pyi` is the type stub shipped in the
+wheel so type checkers see the extension module's real signatures
+instead of treating it as untyped.
 
 <!-- frob:doc docs/native.md#native-core-t-0010 -->
 <!-- frob:ticket T-0010 -->

@@ -55,7 +55,7 @@ def test_typ001_negatives_not_flagged() -> None:
 # --- TYP002: truthiness of a payload attribute -------------------------------
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_truthiness
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ002_truthiness_positives() -> None:
     # r is bound to a known Result/Option producer, so `.ok`/`.err`/`.some`
     # here carry real evidence of a payload-truthiness bug (see TYP002 docs
@@ -78,7 +78,7 @@ def test_typ002_truthiness_positives() -> None:
     assert _rules(findings).count("TYP002") == 4
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_truthiness
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ002_negative_uses_is_ok() -> None:
     source = textwrap.dedent(
         """
@@ -92,7 +92,7 @@ def test_typ002_negative_uses_is_ok() -> None:
     assert "TYP002" not in _rules(findings)
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_truthiness
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ002_negative_unrelated_ok_field() -> None:
     # Real-world false-positive shape: a plain object with an unrelated `.ok`
     # boolean field, with no local evidence it is a typani Result/Option.
@@ -149,7 +149,7 @@ def test_typ003_inspect_side_effect_not_flagged() -> None:
 # --- TYP004: propagation boilerplate -----------------------------------------
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_boilerplate
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ004_result_and_option_boilerplate() -> None:
     source = textwrap.dedent(
         """
@@ -169,7 +169,7 @@ def test_typ004_result_and_option_boilerplate() -> None:
     assert all(f.severity == "info" for f in findings if f.rule == "TYP004")
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_boilerplate
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ004_negative_different_subject_not_flagged() -> None:
     source = textwrap.dedent(
         """
@@ -186,7 +186,7 @@ def test_typ004_negative_different_subject_not_flagged() -> None:
 # --- TYP005: assert stripped under -O ----------------------------------------
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_assert_pair
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ005_assert_then_danger_use() -> None:
     source = textwrap.dedent(
         """
@@ -200,7 +200,7 @@ def test_typ005_assert_then_danger_use() -> None:
     assert findings[0].severity == "info"
 
 
-# frob:tests src/typani/lint/_rules.py::MisuseVisitor._check_assert_pair
+# frob:tests src/typani/lint/__init__.py::check_source
 def test_typ005_negative_no_danger_followup() -> None:
     source = textwrap.dedent(
         """

@@ -7,6 +7,7 @@ repetitive `isinstance` chains without requiring you to change the class hierarc
 
 ## Basic usage
 
+<!-- frob:describes src/typani/dispatch.py::dispatch -->
 ```python
 from typani.dispatch import dispatch
 

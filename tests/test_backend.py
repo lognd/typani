@@ -31,7 +31,7 @@ def test_backend_matches_typani_pure_env(monkeypatch: pytest.MonkeyPatch) -> Non
         assert typani.backend_name() == "pure"
 
 
-# frob:tests src/typani/_impl.py::_detect_backend
+# frob:tests src/typani/_impl.py::native_active
 def test_typani_pure_env_forces_pure_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     """Setting `TYPANI_PURE=1` and reloading `_impl` always selects pure."""
     monkeypatch.setenv("TYPANI_PURE", "1")
@@ -43,7 +43,7 @@ def test_typani_pure_env_forces_pure_backend(monkeypatch: pytest.MonkeyPatch) ->
         importlib.reload(_impl)
 
 
-# frob:tests src/typani/_impl.py::_detect_backend
+# frob:tests src/typani/_impl.py::native_active
 def test_version_skew_falls_back_to_pure_with_warning(
     caplog: pytest.LogCaptureFixture,
 ) -> None:

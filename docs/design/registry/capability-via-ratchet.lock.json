@@ -1,0 +1,64 @@
+{
+  "entries": {
+    "impl_mod::env.read": {
+      "accepted_count": 1,
+      "reason": "T-0015: _impl.py's TYPANI_PURE backend-selection read, the only env.read site in the repo, unchanged since T-0013",
+      "ticket": "T-0015"
+    },
+    "lint::fs-read": {
+      "accepted_count": 1,
+      "reason": "T-0015: lint/__init__.py's *.py source-file read for the opt-in misuse checker, the only fs-read site under src/typani/, unchanged since T-0013",
+      "ticket": "T-0015"
+    },
+    "native_core::ffi": {
+      "accepted_count": 1,
+      "reason": "T-0015: crates/typani-core/src/lib.rs's #[pymodule] entry point, the sole Python/Rust call boundary in the native accelerator crate",
+      "ticket": "T-0015"
+    },
+    "bench::deserialize": {
+      "accepted_count": 1,
+      "reason": "T-0015: bench/bench_result.py's pickle round-trip benchmark, the only deserialize site in the bench tree",
+      "ticket": "T-0015"
+    },
+    "scripts::fs-read": {
+      "accepted_count": 1,
+      "reason": "T-0015: scripts/bump_version.py reads pyproject.toml/_version.py to locate the version literal before rewriting it",
+      "ticket": "T-0015"
+    },
+    "scripts::fs-write": {
+      "accepted_count": 1,
+      "reason": "T-0015: scripts/bump_version.py rewrites the version literal in place, its whole reason for existing",
+      "ticket": "T-0015"
+    },
+    "tests::deserialize": {
+      "accepted_count": 3,
+      "reason": "T-0015: tests/parity/cases.py, tests/test_option_api.py, tests/test_result_api.py deserialize fixture/pickle data as part of the Result/Option API and native/pure parity suites",
+      "ticket": "T-0015"
+    },
+    "tests::eval": {
+      "accepted_count": 2,
+      "reason": "T-0015: tests/parity/cases.py and tests/test_bump_version.py eval small literal expressions while building parity fixtures and asserting the version-bump script's rewritten output",
+      "ticket": "T-0015"
+    },
+    "tests::exec": {
+      "accepted_count": 3,
+      "reason": "T-0015: tests/test_backend.py, tests/test_lint.py, tests/test_result_api.py exec typani.lint and native-backend subprocess invocations as part of the test suite itself",
+      "ticket": "T-0015"
+    },
+    "tests::env.read": {
+      "accepted_count": 1,
+      "reason": "T-0015: tests/test_backend.py reads/monkeypatches TYPANI_PURE to exercise both backend-selection branches",
+      "ticket": "T-0015"
+    },
+    "tests::fs.read": {
+      "accepted_count": 2,
+      "reason": "T-0015: tests/test_bump_version.py and tests/test_lint.py read temp fixture files the tests themselves write",
+      "ticket": "T-0015"
+    },
+    "tests::fs.write": {
+      "accepted_count": 2,
+      "reason": "T-0015: tests/test_bump_version.py and tests/test_lint.py write temp fixture files as part of their own test setup",
+      "ticket": "T-0015"
+    }
+  }
+}

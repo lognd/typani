@@ -9,6 +9,7 @@ brings the same idea to Python with the added ability to attach a description to
 
 Subclass `ErrorSet` and assign description strings as values:
 
+<!-- frob:describes src/typani/error_set.py::ErrorSet -->
 ```python
 from typani.error_set import ErrorSet
 
@@ -31,6 +32,7 @@ repr(e)         # "NetworkError.Timeout"
 
 `ErrorSet` members work naturally as the error type in `Result[T, E]`:
 
+<!-- frob:describes src/typani/result.py::Result -->
 ```python
 from typani.result import Ok, Err, Result
 
@@ -53,6 +55,7 @@ checks -- `@propagate` turns an `UnwrapError` raised by `.unwrap()` into an
 early return of that same `Err`, and `.note(...)` attaches context to it
 without touching the error payload:
 
+<!-- frob:describes src/typani/_propagate.py::propagate -->
 ```python
 from typani import propagate
 
@@ -93,6 +96,7 @@ are ambiguous, just as in Zig.
 
 Use `merge` when you want a specific name or are combining more than two sets:
 
+<!-- frob:describes src/typani/error_set.py::merge -->
 ```python
 from typani.error_set import merge
 

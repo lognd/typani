@@ -8,6 +8,7 @@ that raises on second instantiation instead of silently returning the cached ins
 The decorator works on **any** class -- regular Python classes, classes with existing
 base classes, and Pydantic `BaseModel` subclasses -- without any metaclass conflicts:
 
+<!-- frob:describes src/typani/singleton.py::singleton -->
 ```python
 from typani.singleton import singleton
 
@@ -24,6 +25,7 @@ assert cfg1.debug               # True -- first-call values are kept
 
 ### With Pydantic `BaseModel`
 
+<!-- frob:describes src/typani/singleton.py::singleton -->
 ```python
 from pydantic import BaseModel, Field
 from typani.singleton import singleton
@@ -63,6 +65,7 @@ Database("sqlite://...")          # RuntimeError: Database is a strict singleton
 For simple cases with no existing base classes, inheriting from `Singleton` is
 the most concise option:
 
+<!-- frob:describes src/typani/singleton.py::Singleton -->
 ```python
 from typani.singleton import Singleton
 
@@ -82,6 +85,7 @@ any other class that has its own metaclass.
 `StrictSingleton` uses `StrictSingletonMeta` and raises `RuntimeError` on any
 second instantiation attempt. It also provides a `.instance()` classmethod:
 
+<!-- frob:describes src/typani/singleton.py::StrictSingleton -->
 ```python
 from typani.singleton import StrictSingleton
 
@@ -102,6 +106,7 @@ Database("sqlite://...")          # RuntimeError!
 semantics via a pre-merged metaclass. It is an alternative to `@singleton` for
 Pydantic models and keeps the `class Cfg(SingletonModel): ...` style:
 
+<!-- frob:describes src/typani/singleton.py::_make_singleton_model -->
 ```python
 from typani.singleton import SingletonModel
 

@@ -1,10 +1,11 @@
 # typani.lint
 
-`python -m typani.lint` is a stdlib-only static checker for code that
-*uses* typani's `Result`/`Option` types. It has no dependencies (only
-`ast`, `argparse`, `json`, `pathlib`, `logging`, `dataclasses`) and never
-imports from `typani`'s main package -- it is a dev-time tool, not a
-runtime one.
+`python -m typani.lint` (`src/typani/lint/__main__.py`) is a stdlib-only
+static checker for code that *uses* typani's `Result`/`Option` types. It
+has no dependencies (only `ast`, `argparse`, `json`, `pathlib`, `logging`,
+`dataclasses`) and never imports from `typani`'s main package -- it is a
+dev-time tool, not a runtime one. `src/typani/lint/_report.py` renders
+the JSON/text findings report the CLI prints.
 
 ## Why this exists
 
@@ -354,7 +355,7 @@ genuinely annotated to return a `Result`:
 
 | File | Line | Rule | Discarded call |
 |------|------|------|-----------------|
-| `frob/gates/_coverage.py` | 1083 | TYP003 | `write_coverage_lock(...)` (`-> Result[Unit, GateError]`) |
+| `frob/gates/_coverage.py` | 1083 | TYP003 | `write_coverage_lock(...)` (`-> Result[Unit, GateError]`) | <!-- frob:waive DOC006 reason="paths cite the frob repository (../frob), not tracked files here; the field-results table is measured on frob 0.530.0" -->
 | `frob/serve/_daemon.py` | 554 | TYP003 | `_poll_verify_worker(...)` (`-> Result[WorkerOutcome, WorkerError] \| None`) |
 | `frob/tickets/_land.py` | 2216 | TYP003 | `_land_plan_unwind_after_merge(...)` (`-> Result[None, LandError]`) |
 | `frob/tickets/_land.py` | 6959 | TYP003 | `_check_tdd_order(...)` (`-> Result[None, LandError]`) |

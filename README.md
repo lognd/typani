@@ -31,6 +31,7 @@ pip install "typani[pydantic]"   # SingletonModel (pydantic BaseModel + singleto
 
 ## Sixty-second tour
 
+<!-- frob:describes src/typani/_propagate.py::propagate -->
 ```python
 import json
 import tempfile
@@ -137,6 +138,10 @@ properties the type checker can flag if called, and `typani.lint` turns
 the property-called-as-method and discarded-`Result` shapes into a
 mechanical, CI-checkable rule instead of a review-time habit that lapses.
 
+Full module-by-module reference: [docs/index.md](docs/index.md), which
+also links to [docs/design.md](docs/design.md), the provable
+system-design model of typani's own module graph.
+
 ## Feature table
 
 | Type | Purpose | Docs |
@@ -218,6 +223,14 @@ This is a [frob](https://github.com/lognd/frob)-enabled repository; frob
 is the interface for everything past install (see the Makefile's own
 comment on this). `frob check` is the gate, `frob test` runs the
 touched-set test suite, `frob format` applies formatting.
+
+The optional native core lives in `crates/typani-core`: `src/lib.rs`
+wires up the PyO3 module, `src/result.rs` and `src/option.rs` implement
+`Ok`/`Err`/`Some`/`Nothing`. `tests/conftest.py` provides the shared
+pytest fixtures the suite runs against; `mypy-py310.ini` is the mypy
+oracle config used to cross-check `ty`'s own type-checking results.
+`bench/bench_result.py` is the microbenchmark behind the numbers in
+[Performance](#performance) above.
 
 ## Versioning and compatibility
 

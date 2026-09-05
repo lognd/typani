@@ -48,7 +48,7 @@ Themes across frob's bug tickets, with counts of changelog titles:
 | Theme | Titles | typani-relevant root cause |
 |-------|--------|----------------------------|
 | "silently" dropped / ignored / discarded | 63 | a computed value or `Result` that nothing inspects; a default taken with no diagnostic |
-| exception escaping a `Result` boundary (uncaught / crash / instead of returning Err) | 30+ | `try/except` written by hand at every edge (685 `except` sites in src); one missed edge is a crash (T-3015, T-3264, T-0134, T-0142, T-0152, T-1423) |
+| exception escaping a `Result` boundary (uncaught / crash / instead of returning Err) | 30+ | `try/except` written by hand at every edge (685 `except` sites in src); one missed edge is a crash (frob `T-3015`, frob `T-3264`, frob `T-0134`, frob `T-0142`, frob `T-0152`, frob `T-1423`) |
 | lost context ("which file? which id?") | 45 | `ErrorSet` members are singletons and carry no detail; 26 `Result[..., str]` and 7 tuple-error results exist only to smuggle context |
 | property called as a method (`danger_ok()`) | recorded 3x in the user's own refs | a footgun that repeats across sessions; the refs literally say "NEVER call as r.danger_ok()" |
 | `assert` used for the unwrap invariant | latent | under `python -O` `danger_ok` on an `Err` returns the private sentinel silently |
@@ -100,6 +100,7 @@ allocations).
 
 ### 2.2 Propagation: `unwrap()` plus `@propagate`
 
+<!-- frob:describes src/typani/_propagate.py::propagate -->
 ```python
 from typani import propagate, Result, Ok, Err
 
@@ -269,7 +270,7 @@ $ diff <scratch>/ty_new2.txt <scratch>/ty_baseline.txt
 Both runs produce byte-identical output: exit code 0, 1 diagnostic
 (an unrelated pre-existing `unused-ignore-comment` warning at
 `src/frob/app/ticket_runner/_new.py:421`, tracked by frob's own
-T-0044-style comment, unaffected by typani version). **New
+frob `T-0044`-style comment, unaffected by typani version). **New
 diagnostics attributable to typani 0.1.0: zero.**
 
 | # | diagnostic | classification |

@@ -62,7 +62,7 @@ def test_ok_equality() -> None:
     assert Ok(1).__eq__(object()) is NotImplemented
 
 
-# frob:tests src/typani/result.py::Err.__eq__
+# frob:tests src/typani/result.py::Err
 def test_err_equality_ignores_notes() -> None:
     plain = Err("x")
     noted = Err("x").note("context")

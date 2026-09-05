@@ -61,3 +61,35 @@ reason = "read by `uv sync`/`uv run` outside this repo's own tracked-file graph,
 [[refs.entrypoint]]
 path = "src/typani/py.typed"
 reason = "PEP 561 marker read by type checkers/packaging tools by file presence, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = ".gitattributes"
+reason = "read by git outside this repo's own tracked-file graph, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = "crates/typani-core/Cargo.lock"
+reason = "read by cargo/maturin outside this repo's own tracked-file graph, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = "crates/typani-core/rust-toolchain.toml"
+reason = "read by rustup/cargo by file presence outside this repo's own tracked-file graph, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = "mypy-py310.ini"
+reason = "read by mypy via --config-file in CI/local invocations, never referenced by name from tracked source"
+
+[[refs.entrypoint]]
+path = "src/typani/singleton.pyi"
+reason = "type stub read by type checkers by file presence alongside singleton.py, never imported by tracked source"
+
+[[refs.entrypoint]]
+path = "tests/conftest.py"
+reason = "pytest fixture module discovered by pytest via file-presence convention, never imported by name from tracked source"
+
+[[refs.entrypoint]]
+path = "tests/fixtures/lint/typ003_functions.py"
+reason = "TYP003 fixture loaded by test_lint.py via file path at test time, not imported by name"
+
+[[refs.entrypoint]]
+path = "src/typani/lint/__main__.py"
+reason = "`python -m typani.lint` entry point invoked by module path, never imported by name from tracked source"

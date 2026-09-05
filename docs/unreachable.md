@@ -10,6 +10,7 @@ call site.
 
 ## Usage
 
+<!-- frob:describes src/typani/unreachable.py::Unreachable -->
 ```python
 from typani.unreachable import Unreachable
 from typing import assert_never

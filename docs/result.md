@@ -163,6 +163,7 @@ r.notes  # ("while loading config.toml",)
 `unwrap()` plus `@propagate` gives Rust `?` / Zig `try`-style early return without
 hand-written `if r.is_err: return Err(r.danger_err)` boilerplate:
 
+<!-- frob:describes src/typani/_propagate.py::propagate -->
 ```python
 from typani import propagate, Result, Ok, Err
 

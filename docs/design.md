@@ -32,6 +32,31 @@ proven claim: `frob sys audit`'s self-conformance check (SYS100/SYS101)
 would flag a stale `may` the moment any node's code diverged from what is
 declared here, in either direction -- a missing grant or an unused one.
 
+## Support nodes
+
+T-0015 added four nodes covering non-`src/typani/**` trees that
+`frob sys audit`'s vet pass observes real capabilities in, so those
+capabilities bind to a `code=` glob instead of tripping SYS103
+(unbound-but-capable):
+
+- `native_core` (`crates/typani-core/src/**`): the Rust PyO3 extension,
+  `may "ffi"` for the Python/Rust call boundary.
+- `bench` (`bench/bench_result.py`): the microbenchmark script, `may
+  "deserialize"` for the pickle round-trip it measures.
+- `scripts` (`scripts/bump_version.py`): the release-time version bump
+  script, `may "fs-read"`/`may "fs-write"` for the files it rewrites.
+- `tests` (`tests/**`): the pytest suite, declaring the union of
+  capabilities the vet pass observes across the tree (`deserialize`,
+  `eval`, `exec`, `env-read`, `fs-read`, `fs-write`) -- fixtures,
+  monkeypatched environment reads, subprocess-exec checks on
+  `python -m typani.lint`, and temp-file I/O all live under `tests/`.
+
+None of these four participate in the runtime `src/typani/**` import
+graph modeled above; `tests` flows to `api` (the suite imports typani's
+public surface) and `bench` flows to `api` (the benchmark imports the
+same). `native_core` and `scripts` have no flow into typani's model --
+neither is imported by anything else in this repo.
+
 ## Keeping it green
 
 Re-run the audit after touching anything under `src/typani/` or

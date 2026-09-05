@@ -9,6 +9,7 @@ any declared variant is missing from the handler dict.
 
 Subscript `Sum` with the variant types you want to close over:
 
+<!-- frob:describes src/typani/sum.py::Sum -->
 ```python
 from dataclasses import dataclass
 from typani.sum import Sum
