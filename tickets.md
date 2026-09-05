@@ -424,6 +424,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_backend.py::test_backend_matches_typani_pure_env
 designated_repro_test: null
 threat: null
 component: null
@@ -432,3 +434,18 @@ anchor_reason: null
 land_commit: null
 ```
 Same class as T-0019 one step later: the mypy oracle step fails on runners without the native crate because the optional typani_core import has no stub there. ignore_missing_imports for that one module.
+
+## Done report
+
+The mypy oracle failed on every pure-only CI runner because the optional native module has no stub there; one ignore_missing_imports entry scoped to typani_core, nothing broader.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_backend.py::test_backend_matches_typani_pure_env` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 10 error(s), 978 warning(s), 0 waived
+- error-findings: OPAQUE001@tests/test_scripts.py, REF001@scripts/_common.py, SELFAUDIT001@scripts/_common.py, SELFAUDIT001@scripts/build.py, SELFAUDIT001@scripts/clean.py, SELFAUDIT001@scripts/develop.py, SELFAUDIT001@scripts/install.py, SELFAUDIT001@scripts/release.py, SELFAUDIT001@scripts/typecheck_oracle.py, SELFAUDIT001@tests/test_scripts.py
