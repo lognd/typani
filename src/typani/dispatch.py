@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Mapping, TypeVar
 
 R = TypeVar("R")
 
@@ -11,7 +11,7 @@ _MISSING = object()
 # frob:ticket T-0003
 def dispatch(
     value: object,
-    cases: dict[type[Any], Callable[[Any], R]],
+    cases: Mapping[type[Any], Callable[[Any], R]],
     *,
     default: R | object = _MISSING,
 ) -> R:
@@ -27,7 +27,7 @@ def dispatch(
         if isinstance(value, typ):
             return func(value)
     if default is not _MISSING:
-        return default  # type: ignore[return-value]
+        return default  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
     raise TypeError(
         f"dispatch: no handler for type {type(value).__name__!r} "
         f"and no default provided"

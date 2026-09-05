@@ -85,7 +85,7 @@ def test_propagate_preserves_wrapped() -> None:
         return Ok(1)
 
     wrapped = propagate(fn)
-    assert wrapped.__wrapped__ is fn
+    assert wrapped.__wrapped__ is fn  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
 
 class _Widget:
@@ -142,7 +142,7 @@ def test_catching_err() -> None:
         return a // b
 
     result = divide(10, 0)
-    assert result.is_err
+    assert result.is_err  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
 
 def test_catching_uncaught_exception_propagates() -> None:
@@ -171,4 +171,4 @@ def test_catching_async_err() -> None:
         return a // b
 
     result = asyncio.run(divide(10, 0))
-    assert result.is_err
+    assert result.is_err  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]

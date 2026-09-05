@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "typani"
 version = "0.1.0"
-description = "I extracted out a couple of the types that I've found myself using across a couple of projects. This repository is mostly for myself, but if you find it useful, I'm glad!"
+description = "Typed value types for Python: Rust-shaped Result and Option, Zig-shaped error sets, propagation, an optional Rust core, and a misuse lint."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
@@ -68,7 +68,13 @@ select = ["E", "F", "W", "I", "B"]
 "tests/fixtures/**" = ["E501", "F401", "F811", "F821", "F841"]
 
 [tool.ty.src]
-include = ["src", "tests"]
+include = ["src", "tests", "examples"]
+# tests/fixtures/lint/** is deliberately broken code used as lint-rule test
+# fixtures (unresolved names on purpose); tests/test_bump_version.py loads
+# scripts/bump_version.py by file path via importlib and monkeypatches
+# module-level path constants that don't exist in the static module shape
+# ty sees -- both are intentionally untypeable, not type-check debt (T-0012).
+exclude = ["tests/fixtures/lint/**", "tests/test_bump_version.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -87,18 +93,6 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
 ]
-
-[tool.frob]
-# typani's own type-checking toolchain is transitioning to ty as the
-# primary checker (T-0008); mypy (Makefile `mypy` target, mypy-py310.ini)
-# is kept only as a 3.10-semantics oracle. frob's bundled ty still
-# disagrees with mypy on a batch of pre-existing typing diagnostics across
-# src/tests/examples (T-0002) -- resolving those, and dropping this flag,
-# is tracked by T-0012, not something this tooling pass silently papers
-# over with source edits. check_skip_ty is only read from pyproject.toml's
-# [tool.frob] table (AppConfig.from_external), not from frob.toml, despite
-# frob.toml owning check_base/[graph]/[gates]/[testing].
-check_skip_ty = true
 
 # T-0010: typani-core is not published to PyPI yet, so `uv lock` cannot
 # resolve the `native` extra above against the package index. Point uv

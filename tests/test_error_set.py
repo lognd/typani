@@ -101,11 +101,11 @@ def test_merge_raises_on_duplicate_name() -> None:
 
 def test_pipe_operator_merges() -> None:
     All = NetworkError | ParseError  # type: ignore[operator]
-    names = {m.name for m in All}
+    names = {m.name for m in All}  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
     assert "Timeout" in names
     assert "InvalidJson" in names
 
 
 def test_pipe_operator_three_way() -> None:
     All = NetworkError | ParseError | AuthError  # type: ignore[operator]
-    assert len(list(All)) == 5
+    assert len(list(All)) == 5  # type: ignore[call-overload]  # ty: ignore[invalid-argument-type]

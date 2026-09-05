@@ -40,8 +40,26 @@ def connect(host: str) -> Result[str, NetworkError]:
     return Ok(f"connected to {host}")
 
 result = connect("")
-if result.is_err:
-    print(result.err)   # DnsFailure: Could not resolve the hostname
+match result:
+    case Ok(value):
+        print(value)
+    case Err(error):
+        print(error)   # DnsFailure: Could not resolve the hostname
+```
+
+Chain a `connect`-style step into a larger pipeline with `@propagate` and
+`.unwrap()` instead of hand-rolled `if r.is_err: return Err(r.danger_err)`
+checks -- `@propagate` turns an `UnwrapError` raised by `.unwrap()` into an
+early return of that same `Err`, and `.note(...)` attaches context to it
+without touching the error payload:
+
+```python
+from typani import propagate
+
+@propagate
+def connect_and_greet(host: str) -> Result[str, NetworkError]:
+    conn = connect(host).note("while greeting").unwrap()
+    return Ok(f"hello via {conn}")
 ```
 
 <!-- frob:describes src/typani/error_set.py::merge -->

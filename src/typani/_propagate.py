@@ -31,7 +31,7 @@ def propagate(func: F) -> F:
             except UnwrapError as exc:
                 return exc.container
 
-        return async_wrapper  # type: ignore[return-value]
+        return async_wrapper  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
 
     @functools.wraps(func)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -40,7 +40,7 @@ def propagate(func: F) -> F:
         except UnwrapError as exc:
             return exc.container
 
-    return wrapper  # type: ignore[return-value]
+    return wrapper  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
 
 
 # frob:doc docs/result.md#catch
@@ -65,7 +65,7 @@ def catching(
                 except tuple(exceptions or (Exception,)) as exc:
                     return Err(on_error(exc))
 
-            return async_wrapper  # type: ignore[return-value]
+            return async_wrapper  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
 
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -73,6 +73,6 @@ def catching(
                 lambda: func(*args, **kwargs), *exceptions, on_error=on_error
             )
 
-        return wrapper  # type: ignore[return-value]
+        return wrapper  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
 
     return decorator

@@ -126,7 +126,7 @@ def test_rshift_operator_short_circuits_on_err() -> None:
 
 
 def test_merged_set_as_result_error_type() -> None:
-    r: Result[str, AppError] = Err(AppError.Timeout)
+    r: Result[str, AppError] = Err(AppError.Timeout)  # type: ignore[valid-type, attr-defined]  # ty: ignore[invalid-type-form, unresolved-attribute]
     assert r.is_err
     assert r.danger_err.description == "connection timed out"
 
@@ -138,7 +138,7 @@ def test_merged_set_contains_all_members() -> None:
 
 
 def test_pipe_on_ok_with_merged_error_type() -> None:
-    r: Result[str, AppError] = Ok("payload")
+    r: Result[str, AppError] = Ok("payload")  # type: ignore[valid-type]  # ty: ignore[invalid-type-form]
     result = r | (lambda s: s.upper())
     assert result.ok == "PAYLOAD"
 
@@ -163,7 +163,7 @@ def test_int_or_error_set_is_union_type() -> None:
 
 def test_error_set_or_error_set_is_merged_set() -> None:
     merged = NetworkError | ParseError
-    assert issubclass(merged, ErrorSet)
+    assert issubclass(merged, ErrorSet)  # type: ignore[arg-type]  # ty: ignore[invalid-argument-type]
     names = {m.name for m in merged}
     assert "Timeout" in names
     assert "InvalidJson" in names

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, TypeVar, overload
+from typing import TYPE_CHECKING, Any, TypeVar, cast, overload
 
 T = TypeVar("T")
 
@@ -99,7 +99,7 @@ class StrictSingleton(metaclass=StrictSingletonMeta):
         inst = StrictSingletonMeta.instances.get(cls)
         if inst is None:
             raise LookupError(f"{cls.__name__} has not been instantiated yet.")
-        return inst  # type: ignore[return-value]
+        return cast(T, inst)
 
 
 @overload
@@ -154,10 +154,13 @@ def singleton(cls: type[T] | None = None, *, strict: bool = False) -> Any:
         else:
             merged = type(f"_S{meta.__name__}", (base_meta, meta), {})
 
-        new_cls: type[T] = merged(
-            klass.__name__,
-            (klass,),
-            {"__module__": klass.__module__, "__qualname__": klass.__qualname__},
+        new_cls = cast(
+            "type[T]",
+            merged(
+                klass.__name__,
+                (klass,),
+                {"__module__": klass.__module__, "__qualname__": klass.__qualname__},
+            ),
         )
         return new_cls
 

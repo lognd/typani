@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import weakref
 from enum import Enum, EnumMeta
-from typing import Any
+from typing import Any, cast
 
 # Cache merged sets so A | B and B | A return the identical class object.
 # Keyed by frozenset of leaf ErrorSet classes (not intermediate merges).
-_merge_cache: dict[frozenset[type], type[ErrorSet]] = {}
+_merge_cache: dict[frozenset[type["ErrorSet"]], type["ErrorSet"]] = {}
 
 # Tracks which leaf sets compose a merged ErrorSet (for flattening on re-merge).
-_source_map: weakref.WeakKeyDictionary[type, frozenset[type]] = (
+_ErrorSetKey = frozenset[type["ErrorSet"]]
+_source_map: weakref.WeakKeyDictionary[type["ErrorSet"], _ErrorSetKey] = (
     weakref.WeakKeyDictionary()
 )
 
 
-def _leaves(s: type[ErrorSet]) -> frozenset[type]:
+def _leaves(s: type[ErrorSet]) -> frozenset[type[ErrorSet]]:
     """Return the leaf ErrorSet classes that make up *s*."""
     return _source_map.get(s, frozenset({s}))
 
@@ -36,7 +37,9 @@ class _ErrorSetMeta(EnumMeta):
         """Return a cached, canonical merge of *cls* and *other*."""
         if not (isinstance(other, type) and issubclass(other, ErrorSet)):
             return NotImplemented
-        key: frozenset[type] = _leaves(cls) | _leaves(other)  # type: ignore[arg-type]
+        key: frozenset[type[ErrorSet]] = _leaves(cast("type[ErrorSet]", cls)) | _leaves(
+            other
+        )
         if key in _merge_cache:
             return _merge_cache[key]
         # Sort by class name for a stable, human-readable result name.
@@ -51,7 +54,8 @@ class _ErrorSetMeta(EnumMeta):
 # frob:doc docs/error_set.md#errorset
 # frob:ticket T-0003
 class ErrorSet(Enum, metaclass=_ErrorSetMeta):
-    """Zig-inspired typed error enum where each member carries a human-readable description.
+    """Zig-inspired typed error enum where each member carries a human-readable
+    description.
 
     Define an error set by subclassing and assigning string descriptions as values::
 
@@ -125,4 +129,7 @@ def merge(*sets: type[ErrorSet], name: str = "MergedErrorSet") -> type[ErrorSet]
                     f"(first seen in a previous set)"
                 )
             members[member.name] = str(member.value)
-    return ErrorSet(name, members)  # type: ignore[call-arg,return-value]
+    return cast(
+        "type[ErrorSet]",
+        ErrorSet(name, members),  # type: ignore[call-arg]
+    )

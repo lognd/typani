@@ -159,7 +159,7 @@ def test_map_and_and_then() -> None:
 
 def test_or_else() -> None:
     assert Nothing().or_else(lambda: Some(9)) == Some(9)
-    assert Some(1).or_else(lambda: Some(9)) == Some(1)
+    assert Some(1).or_else(lambda: Some(9)) == Some(1)  # ty: ignore[invalid-argument-type]
 
 
 def test_inspect() -> None:

@@ -8,6 +8,7 @@ from typing import (
     Generic,
     Iterator,
     TypeVar,
+    cast,
     final,
 )
 
@@ -21,6 +22,11 @@ E_co = TypeVar("E_co", covariant=True)
 U = TypeVar("U")
 V = TypeVar("V")
 F = TypeVar("F")
+# Plain (non-covariant) type vars for `catch`: the classmethod produces a
+# fresh Result[T2, E2] rather than reusing the class's covariant T_co/E_co,
+# which cannot appear in contravariant (parameter) position.
+T2 = TypeVar("T2")
+E2 = TypeVar("E2")
 
 _OK_MARKER = 0
 _ERR_MARKER = 1
@@ -50,10 +56,10 @@ class Result(Generic[T_co, E_co]):
     @classmethod
     def catch(
         cls,
-        fn: Callable[[], T_co],
+        fn: Callable[[], T2],
         *exceptions: type[BaseException],
-        on_error: Callable[[BaseException], E_co],
-    ) -> "Result[T_co, E_co]":
+        on_error: Callable[[BaseException], E2],
+    ) -> "Result[T2, E2]":
         """Run *fn*; return ``Ok(fn())``, or ``Err(on_error(exc))`` for a caught exc.
 
         Defaults to catching ``Exception`` (never ``BaseException``) when no
@@ -140,28 +146,28 @@ class Result(Generic[T_co, E_co]):
         """Apply *fn* to the success value; pass ``Err`` through unchanged."""
         # frob:doc docs/result.md#mapfn---resultv-e
         if self.is_err:
-            return self  # type: ignore[return-value]
+            return cast("Result[V, E_co]", self)
         return Ok(fn(self.danger_ok))
 
     def map_err(self, fn: Callable[[E_co], F]) -> "Result[T_co, F]":
         """Apply *fn* to the error value, preserving notes; ``Ok`` passes through."""
         # frob:doc docs/result.md#map_errfn---resultt-f
         if self.is_ok:
-            return self  # type: ignore[return-value]
+            return cast("Result[T_co, F]", self)
         return Err(fn(self.danger_err))._with_notes(self.notes)
 
     def and_then(self, fn: Callable[[T_co], "Result[V, F]"]) -> "Result[V, E_co | F]":
         """Chain a fallible computation; propagate the first error encountered."""
         # frob:doc docs/result.md#and_thenfn---resultv-e--f
         if self.is_err:
-            return self  # type: ignore[return-value]
+            return cast("Result[V, E_co | F]", self)
         return fn(self.danger_ok)
 
     def or_else(self, fn: Callable[[E_co], "Result[T_co, F]"]) -> "Result[T_co, F]":
         """Recover from an error by calling *fn* with the error value."""
         # frob:doc docs/result.md#or_elsefn---resultt-f
         if self.is_ok:
-            return self  # type: ignore[return-value]
+            return cast("Result[T_co, F]", self)
         return fn(self.danger_err)
 
     def inspect(self, fn: Callable[[T_co], None]) -> "Result[T_co, E_co]":
@@ -196,14 +202,14 @@ class Result(Generic[T_co, E_co]):
         # frob:doc docs/result.md#swap_errerr_type---resultt-f
         if self.is_err:
             raise UnwrapError(self)
-        return self  # type: ignore[return-value]
+        return cast("Result[T_co, F]", self)
 
     def swap_ok(self, ok: type[V]) -> "Result[V, E_co]":
         """Assert-cast the success type. Only valid when ``is_err``; else raises."""
         # frob:doc docs/result.md#swap_okok_type---resultv-e
         if self.is_ok:
             raise UnwrapError(self)
-        return self  # type: ignore[return-value]
+        return cast("Result[V, E_co]", self)
 
     def __or__(self, fn: Callable[[T_co], V]) -> "Result[V, E_co]":
         """Alias for :meth:`map`. ``result | fn`` transforms the success value."""
@@ -518,7 +524,7 @@ class Err(Result[T_co, E_co]):
     def __reduce__(
         self,
     ) -> tuple[
-        Callable[[E_co, tuple[str, ...]], "Err[T_co, E_co]"],
+        Callable[..., "Err[T_co, E_co]"],
         tuple[E_co, tuple[str, ...]],
     ]:
         """Pickle support: reconstruct via the module rebuild helper, notes kept."""

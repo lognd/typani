@@ -1,12 +1,7 @@
 check_base = "main"
 
 [graph]
-exclude = ["dist/**", "examples/**", "src/typani/singleton.py"]
-# src/typani/singleton.py excluded: frob 0.1.0a0's graph builder crashes with
-# sqlite3.IntegrityError (UNIQUE constraint failed: symbols.symref) on
-# @typing.overload chains (multiple `singleton` overloads sharing one
-# symref). Filed as T-0001; re-include once the graph builder dedupes
-# overload stubs upstream.
+exclude = ["dist/**", "examples/**"]
 
 
 [gates.severity]

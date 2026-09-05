@@ -20,7 +20,7 @@ def test_unit_subclass_cannot_set_attributes() -> None:
 
     s = Sub()
     with pytest.raises(AttributeError):
-        s.x = 1  # type: ignore[attr-defined]
+        s.x = 1  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
 
 def test_unit_meta_forces_slots_on_subclass() -> None:
@@ -30,7 +30,7 @@ def test_unit_meta_forces_slots_on_subclass() -> None:
     # and by confirming instances cannot carry arbitrary attributes.
     assert Custom.__dict__["__slots__"] == ()
     with pytest.raises(AttributeError):
-        Custom().x = 1  # type: ignore[attr-defined]
+        Custom().x = 1  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
 
 def test_unit_instances_are_independent() -> None:

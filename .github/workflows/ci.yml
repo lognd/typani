@@ -38,12 +38,7 @@ jobs:
           uv run ruff format --check src tests
 
       - name: typecheck (ty)
-        # T-0012 owns dropping check_skip_ty (pyproject.toml [tool.frob])
-        # and re-enabling ty at the frob-check gate. Until the pre-existing
-        # ty/mypy divergence (T-0002) is triaged, ty runs here informationally
-        # only -- mypy below stays the enforced 3.10-semantics oracle.
         run: uv run ty check src
-        continue-on-error: true
 
       - name: typecheck (mypy oracle)
         run: uv run mypy --config-file mypy-py310.ini

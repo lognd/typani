@@ -51,7 +51,7 @@ def test_version_skew_falls_back_to_pure_with_warning(
     import types
 
     fake = types.ModuleType("typani_core")
-    fake.__version__ = "999.999.999"  # type: ignore[attr-defined]
+    fake.__version__ = "999.999.999"  # type: ignore[attr-defined]  # ty: ignore[unresolved-attribute]
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setitem(sys.modules, "typani_core", fake)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Mapping, TypeVar
 
 from typani.dispatch import dispatch
 
@@ -22,7 +22,9 @@ class _SumMeta(type):
         name = "Sum[{}]".format(
             ", ".join(getattr(t, "__name__", repr(t)) for t in variants)
         )
-        return _SumMeta(name, (cls,), {"_variants": variants})  # type: ignore[return-value]
+        return _SumMeta(  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
+            name, (cls,), {"_variants": variants}
+        )
 
 
 # frob:doc docs/sum.md#defining-a-sum-type
@@ -65,7 +67,7 @@ class Sum(metaclass=_SumMeta):
     def match(
         cls,
         value: object,
-        cases: dict[type[Any], Callable[[Any], R]],
+        cases: Mapping[type[Any], Callable[[Any], R]],
         *,
         default: R | object = _MISSING,
     ) -> R:

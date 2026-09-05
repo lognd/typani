@@ -87,7 +87,7 @@ def test_or_else_on_err() -> None:
 
 def test_or_else_on_ok_is_noop() -> None:
     r: Result[int, str] = Ok(99)
-    result = r.or_else(lambda e: Ok(0))
+    result = r.or_else(lambda e: Ok(0))  # type: ignore[var-annotated]  # ty: ignore[invalid-argument-type]
     assert result.ok == 99
 
 

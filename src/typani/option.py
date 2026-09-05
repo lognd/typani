@@ -47,7 +47,7 @@ class Option(Generic[T_co]):
         raise TypeError("Option is abstract; construct Some(value) or Nothing()")
 
     @classmethod
-    def from_optional(cls, x: T_co | None) -> "Option[T_co]":
+    def from_optional(cls, x: T_co | None) -> "Option[T_co]":  # ty: ignore[invalid-generic-class]
         """Wrap ``T | None``: ``Some(x)`` when not ``None``, else ``Nothing()``."""
         # frob:doc docs/option.md#from_optionalx---optiont
         return Nothing() if x is None else Some(x)
@@ -93,17 +93,17 @@ class Option(Generic[T_co]):
         """Apply *fn* to the value if present; pass ``Nothing`` through unchanged."""
         # frob:doc docs/option.md#mapfn---optionv
         if self.is_nothing:
-            return self  # type: ignore[return-value]
+            return self  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
         return Some(fn(self.danger_some))
 
     def and_then(self, fn: Callable[[T_co], "Option[V]"]) -> "Option[V]":
         """Chain a computation that may itself return ``Nothing``."""
         # frob:doc docs/option.md#and_thenfn---optionv
         if self.is_nothing:
-            return self  # type: ignore[return-value]
+            return self  # type: ignore[return-value]  # ty: ignore[invalid-return-type]
         return fn(self.danger_some)
 
-    def or_else(self, fn: Callable[[], "Option[T_co]"]) -> "Option[T_co]":
+    def or_else(self, fn: Callable[[], "Option[T_co]"]) -> "Option[T_co]":  # ty: ignore[invalid-generic-class]
         """Return *fn()* when the value is absent; return ``self`` when present."""
         # frob:doc docs/option.md#or_elsefn---optiont
         if self.is_some:
