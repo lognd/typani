@@ -6,7 +6,7 @@ Central ledger managed by `frob ticket` -- one section per ticket.
 ```yaml
 id: T-0001
 title: frob graph builder crashes on @overload chains (singleton.py excluded)
-state: queued
+state: dropped
 kind: bug
 origin: human
 created: '2026-07-17'
@@ -21,11 +21,13 @@ threat: null
 ```
 frob 0.1.0a0's graph builder raises sqlite3.IntegrityError (UNIQUE constraint failed: symbols.symref) when parsing src/typani/singleton.py, which defines singleton() with two @typing.overload stubs plus the real implementation, all sharing the symref 'singleton'. Worked around by excluding src/typani/singleton.py from [graph] in frob.toml. Re-include once frob's graph builder dedupes overload stubs (or assigns distinct symrefs per overload) upstream in the frob repo itself.
 
+2026-09-05: dropped -- landed via T-0012: frob T-0024 fixed the @overload symref crash upstream and src/typani/singleton.py is back in the [graph] set (frob graph build clean).
+
 <!-- ticket:T-0002 -->
 ```yaml
 id: T-0002
 title: reconcile ty diagnostics with mypy baseline (frob check --skip-ty active)
-state: queued
+state: dropped
 kind: bug
 origin: human
 created: '2026-07-17'
@@ -39,6 +41,8 @@ acceptance: []
 threat: null
 ```
 frob check currently runs with check_skip_ty=true (pyproject.toml [tool.frob]) because frob's bundled ty type checker reports 37 diagnostics across src/typani/{dispatch,error_set,singleton,sum}.py, tests/test_{dispatch,error_set,error_set_result,sum,unit}.py, and examples/{error_sets,sum_dispatch}.py that mypy (the project's actual type checker, see Makefile typecheck target) does not flag. This is pre-existing typing debt uncovered by adopting frob, not something introduced by the frob adoption pass -- no source changes were made to fix it (out of scope for T-adoption). Triage each diagnostic: either it is a real bug mypy is missing (fix the code) or a mypy/ty divergence worth an explicit ty config (pyproject.toml [tool.ty] ignore) once the project decides whether to standardize on ty. Re-enable ty in frob check (drop check_skip_ty) once resolved.
+
+2026-09-05: dropped -- landed via T-0012: every ty diagnostic resolved (ty check src tests examples: All checks passed), check_skip_ty removed from pyproject.toml, SUPPRESS001 clean.
 
 <!-- ticket:T-0003 -->
 ```yaml
@@ -104,8 +108,9 @@ danger_err/swap_err/swap_ok, option.py::Option.is_some/is_nothing/some/
 danger_some/map/and_then/or_else/inspect/unwrap_or. Added frob:ticket
 T-0004 edges to every symbol touched.
 Evidence: pytest -q all green; frob check --stamp-coverage refreshed.
-Filed: none further (gaps 2 and 3 already tracked as T-0100/T-0101 by
-the orchestrator).
+Filed: none further. Gaps 2 and 3 were noted in the orchestrator's
+report at the time but were never filed as tickets; no phantom ids
+remain.
 Gates: frob check . -> PASS, 0 errors, 0 warnings.
 
 <!-- ticket:T-0005 -->
@@ -118,6 +123,8 @@ origin: agent
 created: '2026-07-18'
 blocked_by: []
 parent: null
+milestone: '0.2'
+priority: low
 scope:
 - design/typani.strata
 evidence: []
@@ -132,7 +139,7 @@ The typani.strata pilot design model (first sibling-repo strata rollout, T-0150-
 id: T-0006
 title: 'adopt frob scaffold apply: managed Makefile core shim, gitignore standards,
   guard hooks'
-state: queued
+state: dropped
 kind: feature
 origin: agent
 created: '2026-07-22'
@@ -149,6 +156,8 @@ component: null
 labels: []
 ```
 Estate rollout from frob T-0736 (scaffold conformance, landed 2026-07-22): run frob scaffold apply in this repo to install the managed boilerplate blocks (Makefile core shim with the shared cargo target cache where natives exist, standard gitignore entries, worktree-lease + raw-merge guard hooks), then keep them current via frob doctor which now drift-checks managed blocks against the installed frob version. Requires frob >= 0.92.
+
+2026-09-05: dropped -- superseded by T-0008: the toolchain was modernized to the frob-scaffold conventions directly (uv, ruff, ty, py.typed, CI, release, bump script, gitignore standards); guard hooks are covered by frob check in CI.
 
 <!-- ticket:T-0007 -->
 ```yaml
@@ -838,3 +847,39 @@ Verified typani 0.1.0 as a drop-in upgrade for frob in a scratch venv: zero new 
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 43 error(s), 951 warning(s), 0 waived
 - error-findings: DOC004@README.md, DOC004@docs/dispatch.md, DOC004@docs/error_set.md, DOC004@docs/redesign-0.1.md, DOC004@docs/result.md, DOC004@docs/singleton.md, DOC004@docs/sum.md, DOC004@docs/unit.md, DOC004@docs/unreachable.md, DOC006@docs/lint.md, DOC011@docs/redesign-0.1.md, MILE003@tickets.md, REF001@.gitattributes, REF001@crates/typani-core/Cargo.lock, REF001@crates/typani-core/rust-toolchain.toml, REF001@crates/typani-core/src/lib.rs, REF001@crates/typani-core/src/option.rs, REF001@mypy-py310.ini, REF001@src/typani/singleton.pyi, REF001@tests/conftest.py, REF002@bench/bench_result.py, REF002@crates/typani-core/src/result.rs, REF002@crates/typani-core/typani_core.pyi, REF002@docs/assets/typani-banner.svg, REF002@docs/design.md, REF002@docs/index.md, REF002@src/typani/lint/__main__.py, REF002@src/typani/lint/_report.py, REF002@tests/fixtures/lint/typ003_functions.py, SELFAUDIT001@bench/bench_result.py, SELFAUDIT001@crates/typani-core/src/lib.rs, SELFAUDIT001@crates/typani-core/src/option.rs, SELFAUDIT001@crates/typani-core/src/result.rs, SELFAUDIT001@docs/design/registry/capability-via-ratchet.lock.json, SELFAUDIT001@scripts/bump_version.py, SELFAUDIT001@tests/parity/cases.py, SELFAUDIT001@tests/test_backend.py, SELFAUDIT001@tests/test_bump_version.py, SELFAUDIT001@tests/test_lint.py, SELFAUDIT001@tests/test_option_api.py, SELFAUDIT001@tests/test_result_api.py, TICK006@tickets.md, unresolved-attribute@examples/error_sets.py
+
+<!-- ticket:T-0015 -->
+```yaml
+id: T-0015
+title: 'frob compliance sweep after 0.1: DOC004/DOC006/DOC011 anchors, REF entrypoints,
+  strata nodes for bench/crates/scripts/tests, capability ratchet'
+state: queued
+kind: feature
+origin: agent
+created: '2026-09-05'
+priority: high
+parent: T-0007
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- README.md
+- docs/*.md
+- frob.toml
+- design/typani.strata
+- docs/design/registry/*
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Drive frob check from 63 errors to zero. DOC004: bind every doc code block with a frob:describes anchor. DOC006/DOC011: waive external frob paths and frob ticket ids cited in docs/lint.md and docs/redesign-0.1.md with reasons. REF001/REF002: [[refs.entrypoint]] declarations for build/tool files and second references where a doc is genuinely linked once. SELFAUDIT SYS103/SYS111: strata nodes with declared may capabilities for bench/, crates/typani-core/, scripts/, tests/, and raise the capability-via ratchet ceilings for impl_mod env.read and lint fs-read.
