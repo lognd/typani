@@ -329,7 +329,7 @@ docs/redesign-0.1.md sections 2.1-2.4 and 3. Pure-Python canonical implementatio
 id: T-0010
 title: 'typani-core: PyO3/maturin native Result/Option with pure-Python fallback and
   parity tests'
-state: queued
+state: planned
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -348,13 +348,36 @@ scope:
 - src/typani/_impl.py
 - src/typani/result.py
 - src/typani/option.py
-- tests/**
 - bench/**
 - docs/native.md
+- tests/conftest.py
+- tests/test_backend.py
+- tests/parity/*.py
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: remove
+  glob: tests/**
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/conftest.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_backend.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/parity/*.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
@@ -363,7 +386,6 @@ anchor_reason: null
 land_commit: null
 ```
 docs/redesign-0.1.md section 2.5. abi3-py310 frozen pyclasses; __class_getitem__, __match_args__, __reduce__, __eq__/__hash__/__iter__/__bool__; TYPANI_PURE=1 forces fallback; version-skew check; bench/ script with before/after numbers; full test matrix runs under both backends.
-
 <!-- ticket:T-0011 -->
 ```yaml
 id: T-0011
@@ -384,12 +406,29 @@ runs_last_parallel_safe: false
 runs_last_parallel_safe_reason: null
 scope:
 - src/typani/lint/**
-- tests/**
 - docs/lint.md
+- tests/test_lint.py
+- tests/fixtures/lint/*.py
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: remove
+  glob: tests/**
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_lint.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/fixtures/lint/*.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
@@ -398,7 +437,6 @@ anchor_reason: null
 land_commit: null
 ```
 docs/redesign-0.1.md section 2.6. python -m typani.lint PATH...; exit 1 on TYP001-TYP003 findings; TYP004/TYP005 informational; --json output; frob [policy] recipe documented.
-
 <!-- ticket:T-0012 -->
 ```yaml
 id: T-0012
