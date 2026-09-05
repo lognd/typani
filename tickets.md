@@ -172,7 +172,7 @@ The capability ratchet lock that T-0015 introduced had no in-tree reference (REF
 id: T-0017
 title: 'fix: ty diagnostics frob''s check stage reports on examples/error_sets.py
   and option.py'
-state: in-progress
+state: done
 kind: bug
 origin: agent
 created: '2026-09-05'
@@ -221,6 +221,9 @@ land_commit: null
 ```
 frob's ty stage (multi-platform run) reported an unresolved-attribute on the match-captured err in examples/error_sets.py and two unused ty:ignore directives in option.py that a plain uv run ty check did not surface.
 
+## Reopen log
+- 2026-09-05: the ty:ignore removal traded frob-stage warnings for plain-run errors; fix the variance properly with a method-level TypeVar
+
 ## Done report
 
 frob's per-platform ty stage and the plain ty run disagreed about two ty:ignore directives in option.py; the real fix is a method-level TypeVar for from_optional and or_else so neither checker needs a suppression, mirrored into the native stub, plus the example printing str(err).
@@ -237,6 +240,3 @@ Filed: none (all findings were fixable in scope).
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 0 error(s), 941 warning(s), 0 waived
 - error-findings: none (measured, zero errors)
-
-## Reopen log
-- 2026-09-05: the ty:ignore removal traded frob-stage warnings for plain-run errors; fix the variance properly with a method-level TypeVar
