@@ -419,7 +419,7 @@ def test_unwrap_bare_unaffected() -> None:
 # --- error-return trace (T-0028) ----------------------------------------------
 
 
-# frob:tests src/typani/result.py::Err.traced
+# frob:tests src/typani/result.py::Result.traced
 def test_traced_ok_is_noop() -> None:
     o = Ok(1)
     assert o.traced("site") is o

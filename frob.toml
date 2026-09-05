@@ -122,6 +122,10 @@ reason = "`python -m typani.lint` entry point invoked by module path, never impo
 path = "scripts/check.py"
 reason = "the local gate front door, run by `make check` and by hand; never imported by tracked source"
 
+[[refs.entrypoint]]
+path = "scripts/_common.py"
+reason = "shared helper imported by every scripts/*.py through a sys.path insert (scripts are run by path, not as a package); the import is real but not a tracked-file reference the scan resolves"
+
 # T-0025: standard open-source community files. GitHub and human readers
 # discover these by file-presence convention (repo root, .github/), never
 # by name from tracked source.

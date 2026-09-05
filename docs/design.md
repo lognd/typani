@@ -43,13 +43,24 @@ capabilities bind to a `code=` glob instead of tripping SYS103
   `may "ffi"` for the Python/Rust call boundary.
 - `bench` (`bench/bench_result.py`): the microbenchmark script, `may
   "deserialize"` for the pickle round-trip it measures.
-- `scripts` (`scripts/bump_version.py`): the release-time version bump
-  script, `may "fs-read"`/`may "fs-write"` for the files it rewrites.
-- `tests` (`tests/**`): the pytest suite, declaring the union of
-  capabilities the vet pass observes across the tree (`deserialize`,
-  `eval`, `exec`, `env-read`, `fs-read`, `fs-write`) -- fixtures,
-  monkeypatched environment reads, subprocess-exec checks on
-  `python -m typani.lint`, and temp-file I/O all live under `tests/`.
+- `scripts` (`scripts/*.py`, widened from `scripts/bump_version.py`
+  alone by T-0030 once the vet pass observed real capabilities in the
+  rest of the tree): the release/build/dev-loop executables, `may
+  "fs-read"`/`may "fs-write"` for the files `bump_version.py`/
+  `clean.py`/`release.py` rewrite, `may "exec"` for the subprocess
+  invocations in `_common.py`/`build.py`/`check.py`/`develop.py`/
+  `install.py`/`release.py`/`typecheck_oracle.py`, and `may
+  "env-read"`/`may "env-write"` for `check.py`'s gate-selection env
+  reads and `release.py`'s publish-flow environment handling.
+- `tests` (`tests/**`, T-0030 added `tests/test_scripts.py` to the
+  bound file list once the vet pass observed its own capabilities):
+  the pytest suite, declaring the union of capabilities the vet pass
+  observes across the tree (`deserialize`, `eval`, `exec`, `env-read`,
+  `fs-read`, `fs-write`) -- fixtures, monkeypatched environment reads
+  (including `test_result_api.py`'s native/pure backend parity check),
+  subprocess-exec checks on `python -m typani.lint` and on
+  `scripts/*.py` entry points, and temp-file I/O all live under
+  `tests/`.
 
 None of these four participate in the runtime `src/typani/**` import
 graph modeled above; `tests` flows to `api` (the suite imports typani's

@@ -219,6 +219,10 @@ like an un-propagated Rust panic.
 `@propagate` also works on `async def` functions, on plain methods, and on the
 inner function of a `@classmethod`.
 
+Used as a factory (`@propagate(on_error=fn)`), the returned decorator binds
+*on_error* through a plain inner function rather than `functools.partial` (as
+of T-0030), so the indirection stays statically resolvable.
+
 ### Cost
 
 `@propagate` is not free on the happy path, and it would be dishonest to

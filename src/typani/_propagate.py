@@ -6,8 +6,8 @@ import logging
 from types import CodeType
 from typing import Any, Callable, TypeVar, overload
 
-from typani import option as _option_module
-from typani import result as _result_module
+import typani.option as _option_module
+import typani.result as _result_module
 from typani._exceptions import UnwrapError
 from typani.result import Err, Ok, Result
 
@@ -156,6 +156,7 @@ def propagate(
 
 # frob:doc docs/result.md#propagation
 # frob:ticket T-0028
+# frob:waive AFFECT001 reason="T-0030's only propagate() change is the OPAQUE001 functools.partial fix (internal indirection, no API/behavior change); docs/result.md#propagation is touched this diff, but README.md/docs/error_set.md/docs/redesign-0.1.md are out of T-0030's declared file scope"
 def propagate(
     func: F | None = None,
     *,
@@ -183,7 +184,15 @@ def propagate(
     attributed to the outer function. See docs/result.md#propagation.
     """
     if func is None:
-        return functools.partial(propagate, on_error=on_error)  # ty: ignore[invalid-return-type]
+
+        def _decorate(inner: F) -> F:
+            """Bind *on_error* statically, not via a runtime `functools.partial`."""
+            return propagate(  # type: ignore[call-overload,no-any-return]
+                inner,  # ty: ignore[invalid-argument-type]
+                on_error=on_error,
+            )
+
+        return _decorate
 
     owned = _owned_codes_for(func)
     qualname = getattr(func, "__qualname__", repr(func))

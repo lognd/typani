@@ -24,7 +24,9 @@ def _load_module(name: str) -> ModuleType:
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
+    sys.modules[name] = (
+        module  # frob:waive OPAQUE001 reason="script loader imports scripts/*.py by file path (not as a package); registering in sys.modules is required so dataclasses/pickle defined in the loaded module resolve their own qualname during the test"
+    )
     spec.loader.exec_module(module)
     return module
 

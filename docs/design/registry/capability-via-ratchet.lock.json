@@ -26,9 +26,24 @@
       "ticket": "T-0015"
     },
     "scripts::fs-write": {
+      "accepted_count": 3,
+      "reason": "T-0030: was 1 (scripts/bump_version.py's version-literal rewrite); grew to 3 once the scripts node's code= glob widened to scripts/*.py (SYS103) and picked up scripts/clean.py's tree removal and scripts/release.py's changelog/version-file rewrite",
+      "ticket": "T-0030"
+    },
+    "scripts::exec": {
+      "accepted_count": 7,
+      "reason": "T-0030: new pair -- the scripts node's code= glob widened from bump_version.py alone to scripts/*.py (SYS103), which observed subprocess exec in scripts/_common.py (shared subprocess helper), build.py, check.py, develop.py, install.py, release.py, and typecheck_oracle.py, each running an external tool as its whole purpose",
+      "ticket": "T-0030"
+    },
+    "scripts::env.read": {
+      "accepted_count": 2,
+      "reason": "T-0030: new pair -- scripts/check.py reads env vars to select which gates to run locally, and scripts/release.py reads publish-token/environment configuration before uploading",
+      "ticket": "T-0030"
+    },
+    "scripts::env.write": {
       "accepted_count": 1,
-      "reason": "T-0015: scripts/bump_version.py rewrites the version literal in place, its whole reason for existing",
-      "ticket": "T-0015"
+      "reason": "T-0030: new pair -- scripts/release.py sets environment variables for the subprocess tools it shells out to during the release flow",
+      "ticket": "T-0030"
     },
     "tests::deserialize": {
       "accepted_count": 3,
@@ -36,19 +51,19 @@
       "ticket": "T-0015"
     },
     "tests::eval": {
-      "accepted_count": 2,
-      "reason": "T-0015: tests/parity/cases.py and tests/test_bump_version.py eval small literal expressions while building parity fixtures and asserting the version-bump script's rewritten output",
-      "ticket": "T-0015"
+      "accepted_count": 3,
+      "reason": "T-0030: was 2 (tests/parity/cases.py, tests/test_bump_version.py); grew to 3 once the tests node's code= glob widened to include tests/test_scripts.py (SYS103), whose script-loader test evals a small literal to assert a rewritten script constant",
+      "ticket": "T-0030"
     },
     "tests::exec": {
-      "accepted_count": 3,
-      "reason": "T-0015: tests/test_backend.py, tests/test_lint.py, tests/test_result_api.py exec typani.lint and native-backend subprocess invocations as part of the test suite itself",
-      "ticket": "T-0015"
+      "accepted_count": 4,
+      "reason": "T-0030: was 3 (tests/test_backend.py, tests/test_lint.py, tests/test_result_api.py); grew to 4 once the tests node's code= glob widened to include tests/test_scripts.py (SYS103), which execs scripts/*.py entry points under test",
+      "ticket": "T-0030"
     },
     "tests::env.read": {
-      "accepted_count": 1,
-      "reason": "T-0015: tests/test_backend.py reads/monkeypatches TYPANI_PURE to exercise both backend-selection branches",
-      "ticket": "T-0015"
+      "accepted_count": 2,
+      "reason": "T-0030: was 1 (tests/test_backend.py); grew to 2 once SYS100 named tests/test_result_api.py:196's os.environ monkeypatch used to exercise native/pure backend parity, the same shape test_backend.py already declared",
+      "ticket": "T-0030"
     },
     "tests::fs.read": {
       "accepted_count": 2,
@@ -56,9 +71,9 @@
       "ticket": "T-0015"
     },
     "tests::fs.write": {
-      "accepted_count": 2,
-      "reason": "T-0015: tests/test_bump_version.py and tests/test_lint.py write temp fixture files as part of their own test setup",
-      "ticket": "T-0015"
+      "accepted_count": 3,
+      "reason": "T-0030: was 2 (tests/test_bump_version.py, tests/test_lint.py); grew to 3 once the tests node's code= glob widened to include tests/test_scripts.py (SYS103), whose script-loader test writes temp fixture files as part of its own setup",
+      "ticket": "T-0030"
     }
   }
 }

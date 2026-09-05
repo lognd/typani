@@ -549,11 +549,11 @@ added the mapped-error TYP004 shape and the TYP006/TYP007 rules:
   reachable from a `Result`-returning function indirectly (through a
   helper) rather than lexically inside one, which this rule deliberately
   does not follow (see TYP007 above). Five example symrefs:
-  - `frob/fleet/__init__.py::load_manifest`
-  - `frob/fuzz/_arbitrary.py::_field_strategy`
-  - `frob/fuzz/_arbitrary.py::_derived_strategy`
-  - `frob/gates/_coverage.py::load_coverage`
-  - `frob/gates/_ratchet.py::_write_ratchet_lock`
+  - `frob/fleet/__init__.py::load_manifest` <!-- frob:waive DOC006 reason="paths cite the frob repository (../frob), not tracked files here; measured on frob 0.530.0" -->
+  - `frob/fuzz/_arbitrary.py::_field_strategy` <!-- frob:waive DOC006 reason="paths cite the frob repository (../frob), not tracked files here; measured on frob 0.530.0" -->
+  - `frob/fuzz/_arbitrary.py::_derived_strategy` <!-- frob:waive DOC006 reason="paths cite the frob repository (../frob), not tracked files here; measured on frob 0.530.0" -->
+  - `frob/gates/_coverage.py::load_coverage` <!-- frob:waive DOC006 reason="paths cite the frob repository (../frob), not tracked files here; measured on frob 0.530.0" -->
+  - `frob/gates/_ratchet.py::_write_ratchet_lock` <!-- frob:waive DOC006 reason="paths cite the frob repository (../frob), not tracked files here; measured on frob 0.530.0" -->
 
 ## frob recipe
 

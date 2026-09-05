@@ -323,6 +323,8 @@ def test_propagate_partial_fallback_unscoped() -> None:
         value = helper()
         return Ok(value)
 
-    partial_fn: Callable[[], Result[int, str]] = _functools.partial(fn, 0)
+    partial_fn: Callable[[], Result[int, str]] = _functools.partial(
+        fn, 0
+    )  # frob:waive OPAQUE001 reason="exercises propagate's __code__-less fallback path (functools.partial has no __code__), documented in _propagate._owned_codes_for; deliberate test mechanics, not a real capability indirection"
     wrapped = propagate(partial_fn)
     assert wrapped() == Err("bad")

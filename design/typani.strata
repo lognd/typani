@@ -227,16 +227,24 @@ node bench : trusted {
     may "deserialize" via "bench/bench_result.py";
 }
 
-// scripts/bump_version.py: the release-time version bump script run by
-// the Makefile's `upload` target. Reads and rewrites the version literal
-// in-place.
+// scripts/*.py: the release/build/dev-loop executables run by the
+// Makefile targets and by hand (never imported by tracked source, each
+// already declared as a `[[refs.entrypoint]]` in frob.toml). T-0030
+// widened this node's `code=` glob from bump_version.py alone to the
+// whole scripts/ tree once `frob sys audit` observed real capabilities
+// (subprocess exec, env read/write, fs write) in every other script
+// file that a narrower glob left unbound (SYS103).
 // frob:doc docs/design.md#support-nodes
 // frob:ticket T-0015
+// frob:ticket T-0030
 node scripts : trusted {
     clearance Public;
-    code "scripts/bump_version.py";
+    code "scripts/*.py";
     may "fs-read" via "scripts/bump_version.py";
-    may "fs-write" via "scripts/bump_version.py";
+    may "fs-write" via "scripts/bump_version.py", "scripts/clean.py", "scripts/release.py";
+    may "exec" via "scripts/_common.py", "scripts/build.py", "scripts/check.py", "scripts/develop.py", "scripts/install.py", "scripts/release.py", "scripts/typecheck_oracle.py";
+    may "env.read" via "scripts/check.py", "scripts/release.py";
+    may "env.write" via "scripts/release.py";
 }
 
 // The subset of tests/** the vet pass observes real capabilities in
@@ -250,15 +258,19 @@ node scripts : trusted {
 // into an undeclared cross-component SYS003 finding against this node.
 // frob:doc docs/design.md#support-nodes
 // frob:ticket T-0015
+// frob:ticket T-0030
 node tests : trusted {
     clearance Public;
-    code "tests/parity/cases.py" "tests/test_backend.py" "tests/test_bump_version.py" "tests/test_lint.py" "tests/test_option_api.py" "tests/test_result_api.py";
+    code "tests/parity/cases.py" "tests/test_backend.py" "tests/test_bump_version.py" "tests/test_lint.py" "tests/test_option_api.py" "tests/test_result_api.py" "tests/test_scripts.py";
     may "deserialize" via "tests/parity/cases.py", "tests/test_option_api.py", "tests/test_result_api.py";
-    may "eval" via "tests/parity/cases.py", "tests/test_bump_version.py";
-    may "exec" via "tests/test_backend.py", "tests/test_lint.py", "tests/test_result_api.py";
-    may "env.read" via "tests/test_backend.py";
+    may "eval" via "tests/parity/cases.py", "tests/test_bump_version.py", "tests/test_scripts.py";
+    may "exec" via "tests/test_backend.py", "tests/test_lint.py", "tests/test_result_api.py", "tests/test_scripts.py";
+    // T-0030: test_result_api.py:196 monkeypatches os.environ to exercise
+    // native/pure backend parity, the same env.read shape test_backend.py
+    // already declares.
+    may "env.read" via "tests/test_backend.py", "tests/test_result_api.py";
     may "fs.read" via "tests/test_bump_version.py", "tests/test_lint.py";
-    may "fs.write" via "tests/test_bump_version.py", "tests/test_lint.py";
+    may "fs.write" via "tests/test_bump_version.py", "tests/test_lint.py", "tests/test_scripts.py";
 }
 
 // -- flows ------------------------------------------------------------
@@ -342,6 +354,13 @@ flow f_propagate_exceptions : propagate_mod -> exceptions_mod { label Public; at
 // frob:doc docs/result.md#propagation
 // frob:ticket T-0013
 flow f_propagate_result : propagate_mod -> result_mod { label Public; attr local; }
+
+// _propagate.py: `import typani.option as _option_module` (T-0030,
+// module-scope, used by _owned_codes_for's internal-frame check
+// alongside _result_module).
+// frob:doc docs/result.md#propagation
+// frob:ticket T-0030
+flow f_propagate_option : propagate_mod -> option_mod { label Public; attr local; }
 
 // result.py: `from typani._exceptions import UnwrapError`.
 // frob:doc docs/result.md#result
