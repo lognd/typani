@@ -372,7 +372,7 @@ The pyversions badge read 'missing' because neither distribution declared Progra
 
 ## Done report
 
-Metadata-only patch: classifiers and keywords on both distributions so badge services and PyPI report Python 3.10-3.13 and the MIT license.
+Metadata-only patch: classifiers and keywords on both distributions so badge services and PyPI report Python 3.10-3.13 and MIT; project URLs corrected; README links and banner made absolute so the PyPI rendering resolves.
 
 ### Changed
 (no changed files detected)
@@ -382,5 +382,5 @@ Metadata-only patch: classifiers and keywords on both distributions so badge ser
 
 ### Captured claims
 - tests: 0 passed (from 0 evidence id(s))
-- gates: 0 error(s), 1005 warning(s), 2 waived
-- error-findings: none (measured, zero errors)
+- gates: 1 error(s), 1006 warning(s), 2 waived
+- error-findings: PRE001@tickets/T-0035
