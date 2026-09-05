@@ -38,7 +38,7 @@ The typani.strata pilot design model (first sibling-repo strata rollout, T-0150-
 id: T-0015
 title: 'frob compliance sweep after 0.1: DOC004/DOC006/DOC011 anchors, REF entrypoints,
   strata nodes for bench/crates/scripts/tests, capability ratchet'
-state: queued
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -56,10 +56,39 @@ scope:
 - frob.toml
 - design/typani.strata
 - docs/design/registry/*
+- tests/test_backend.py
+- tests/test_lint.py
+- tests/test_result_api.py
+- tickets-archive.md
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: add
+  glob: tests/test_backend.py
+  reason: COV006 rebinding of frob:tests edges to public symbols and the T-0007 evidence-kind
+    fix surfaced by the same sweep
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_lint.py
+  reason: COV006 rebinding of frob:tests edges to public symbols and the T-0007 evidence-kind
+    fix surfaced by the same sweep
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_result_api.py
+  reason: COV006 rebinding of frob:tests edges to public symbols and the T-0007 evidence-kind
+    fix surfaced by the same sweep
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tickets-archive.md
+  reason: COV006 rebinding of frob:tests edges to public symbols and the T-0007 evidence-kind
+    fix surfaced by the same sweep
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
