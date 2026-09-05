@@ -244,7 +244,7 @@ Modernized the toolchain to the owner's current frob-scaffold preferences: uv wi
 id: T-0009
 title: 'Result/Option redesign: Ok/Err/Some/Nothing classes, unwrap+propagate, notes,
   eq/hash/match/iter/pickle, catch'
-state: queued
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
@@ -262,13 +262,60 @@ scope:
 - src/typani/_exceptions.py
 - src/typani/_propagate.py
 - src/typani/__init__.py
-- tests/**
 - docs/result.md
 - docs/option.md
+- tests/test_result.py
+- tests/test_option.py
+- tests/test_result_api.py
+- tests/test_option_api.py
+- tests/test_propagate.py
+- tests/test_operators.py
+- tests/test_error_set_result.py
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: remove
+  glob: tests/**
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_result.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_option.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_result_api.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_option_api.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_propagate.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_operators.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
+- op: add
+  glob: tests/test_error_set_result.py
+  reason: narrow to the test files this ticket actually touched
+  actor: logan
+  at: '2026-09-05'
 designated_repro_test: null
 threat: null
 component: null
@@ -277,7 +324,6 @@ anchor_reason: null
 land_commit: null
 ```
 docs/redesign-0.1.md sections 2.1-2.4 and 3. Pure-Python canonical implementation with __slots__, mypy strict + ty clean. This module is the spec the native core must match exactly.
-
 <!-- ticket:T-0010 -->
 ```yaml
 id: T-0010
