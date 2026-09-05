@@ -702,7 +702,7 @@ NumPy-style banner at docs/assets/typani-banner.svg (ASCII-only). README: banner
 id: T-0014
 title: 'verify 0.1 against frob: ty, ruff, unit subset with the new typani installed
   in a scratch venv'
-state: queued
+state: in-progress
 kind: feature
 origin: agent
 created: '2026-09-05'
