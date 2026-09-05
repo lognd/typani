@@ -225,7 +225,7 @@ frob's ty stage (multi-platform run) reported an unresolved-attribute on the mat
 
 frob's per-platform ty stage and the plain ty run disagreed about two ty:ignore directives in option.py; the real fix is a method-level TypeVar for from_optional and or_else so neither checker needs a suppression, mirrored into the native stub, plus the example printing str(err).
 
-Filed: none -- the reopen landed the variance fix itself; no follow-up is needed.
+Filed: none (all findings were fixable in scope).
 
 ### Changed
 (no changed files detected)
