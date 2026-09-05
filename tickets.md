@@ -300,7 +300,7 @@ frob's consumer review asked for two things that turn an empty result from ambig
 id: T-0019
 title: 'CI red on first push: hardcoded test cwd, ty unresolved typani_core on pure
   runners, frob-check advisory, token publish'
-state: in-progress
+state: done
 kind: bug
 origin: human
 created: '2026-09-05'
@@ -320,6 +320,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_result_api.py::test_python_o_safety
 designated_repro_test: null
 threat: null
 component: null
@@ -328,3 +330,18 @@ anchor_reason: null
 land_commit: null
 ```
 First CI run after the 0.1 push failed in every job: test_python_o_safety used the developer's absolute checkout path as cwd; ty on pure-only runners cannot resolve the optional typani_core import in _impl.py; frob-check cannot install frob (unpublished) and is advisory until it can; release.yml publishes with the PYPI_API_TOKEN secret.
+
+## Done report
+
+Every CI job failed on the first push: a test hardcoded the developer's checkout path, ty could not resolve the optional native import on pure-only runners, and frob-check cannot install an unpublished frob. Fixed the first two properly, made frob-check advisory with the reason in the workflow, and switched publish to the PYPI_API_TOKEN secret.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_result_api.py::test_python_o_safety` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 0 error(s), 942 warning(s), 0 waived
+- error-findings: none (measured, zero errors)
