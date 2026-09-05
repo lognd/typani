@@ -4,10 +4,25 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "typani"
-version = "0.2.0"
+version = "0.2.1"
 description = "Typed value types for Python: Rust-shaped Result and Option, Zig-shaped error sets, propagation, an optional Rust core, and a misuse lint."
 readme = "README.md"
 requires-python = ">=3.10"
+keywords = ["result", "option", "error-handling", "rust", "zig", "typed", "lint"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
 license = { text = "MIT" }
 authors = [
     { name = "Logan Dapp", email = "logan@logand.app" }
@@ -25,7 +40,7 @@ pydantic = ["pydantic>=2.0"]
 # together, so the version string itself is the contract. Without this
 # extra, typani still installs and runs in pure-Python mode. Unpublished
 # until T-0010 lands; do not add to `uv sync --all-extras` until then.
-native = ["typani-core==0.2.0"]
+native = ["typani-core==0.2.1"]
 
 [dependency-groups]
 dev = [

@@ -797,7 +797,7 @@ wheels = [
 
 [[package]]
 name = "typani"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 
 [package.optional-dependencies]
@@ -845,7 +845,7 @@ dev = [
 
 [[package]]
 name = "typani-core"
-version = "0.2.0"
+version = "0.2.1"
 source = { directory = "crates/typani-core" }
 
 [[package]]
