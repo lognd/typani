@@ -169,3 +169,39 @@ Inlining the propagate failure path left its helper with no callers and a waiver
 - tests: 1 passed (from 1 evidence id(s))
 - gates: 0 error(s), 1005 warning(s), 2 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0032 -->
+```yaml
+id: T-0032
+title: 'release 0.2.0: version bump, changelog date, TYP007 scope note'
+state: in-progress
+kind: docs
+origin: human
+created: '2026-09-05'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: '0.2'
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- pyproject.toml
+- src/typani/_version.py
+- crates/typani-core/pyproject.toml
+- crates/typani-core/Cargo.toml
+- CHANGELOG.md
+- docs/lint.md
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+Cut 0.2.0: lexically scoped propagate, error return trace, wrap_err, unwrap(err=, note=), TYP006/TYP007. The frob consumer confirmed the envelope and scoping; its 17-vs-93 question is answered in docs/lint.md.
