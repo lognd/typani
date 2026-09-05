@@ -126,7 +126,7 @@ The 0.2 propagate work and the community files left 24 gate errors: misread doc 
 ```yaml
 id: T-0031
 title: 'propagate: remove dead _scope_check helper and wrap the AFFECT001 waiver line'
-state: in-progress
+state: done
 kind: bug
 origin: agent
 created: '2026-09-05'
@@ -144,6 +144,8 @@ scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+evidence:
+- tests/test_propagate.py::test_propagate_helper_unwrap_escapes
 designated_repro_test: null
 threat: null
 component: null
@@ -152,3 +154,18 @@ anchor_reason: null
 land_commit: null
 ```
 After inlining the failure path, _scope_check had no callers (DEAD001) and the AFFECT001 waiver was a 293-character line (E501).
+
+## Done report
+
+Inlining the propagate failure path left its helper with no callers and a waiver comment far past the line limit; both cleaned.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_propagate.py::test_propagate_helper_unwrap_escapes` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 1 passed (from 1 evidence id(s))
+- gates: 0 error(s), 1005 warning(s), 2 waived
+- error-findings: none (measured, zero errors)
