@@ -568,6 +568,15 @@ scope_changes:
     must move with them
   actor: logan
   at: '2026-09-07'
+evidence:
+- tests/test_cli.py::test_lint_subcommand_clean_tree
+- tests/test_cli.py::test_lint_subcommand_reports_errors
+- tests/test_cli.py::test_cli_overrides_env
+- tests/test_cli.py::test_no_subcommand_is_a_config_error
+- tests/test_cli.py::test_configure_is_idempotent_and_root_safe
+- tests/test_cli.py::test_module_form_still_works
+- tests/test_cli.py::test_package_module_form_works
+- tests/test_cli.py::test_console_script_entry_point_is_declared
 designated_repro_test: null
 acceptance:
 - text: given typani installed as a uv tool, when the user runs 'typani lint src',
