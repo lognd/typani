@@ -585,7 +585,8 @@ acceptance:
   - tests/test_cli.py::test_lint_subcommand_clean_tree
 - text: given no subcommand, when 'typani' is run, then it prints usage and exits
     nonzero
-  evidence: []
+  evidence:
+  - tests/test_cli.py::test_no_subcommand_is_a_config_error
 threat: null
 component: null
 anchor: false
