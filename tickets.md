@@ -581,7 +581,8 @@ designated_repro_test: null
 acceptance:
 - text: given typani installed as a uv tool, when the user runs 'typani lint src',
     then the linter runs and exits with its usual status code
-  evidence: []
+  evidence:
+  - tests/test_cli.py::test_lint_subcommand_clean_tree
 - text: given no subcommand, when 'typani' is run, then it prints usage and exits
     nonzero
   evidence: []
