@@ -460,6 +460,15 @@ scope:
 - tests/test_cli.py
 - src/typani/lint/__init__.py
 - design/typani.strata
+- src/typani/__main__.py
+- src/typani/app/
+- src/typani/logging/
+- src/typani/lint/options.py
+- src/typani/_impl.py
+- src/typani/_propagate.py
+- docs/cli.md
+- docs/logging.md
+- docs/index.md
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
@@ -475,6 +484,60 @@ scope_changes:
   glob: design/typani.strata
   reason: doc anchors in docs/lint.md bind to symbols in these files; scope closure
     requires them
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: src/typani/__main__.py
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: src/typani/app/
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: src/typani/logging/
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: src/typani/lint/options.py
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: src/typani/_impl.py
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: src/typani/_propagate.py
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: docs/cli.md
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: docs/logging.md
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: docs/index.md
+  reason: 'central logging channel + App/AppConfig pattern per user direction: new
+    app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
   actor: logan
   at: '2026-09-07'
 designated_repro_test: null
