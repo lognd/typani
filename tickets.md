@@ -735,11 +735,14 @@ scope_changes:
     with from_external's validation change
   actor: logan
   at: '2026-09-07'
+evidence:
+- tests/test_cli.py::test_resolve_level_accepts_the_standard_names
 designated_repro_test: null
 acceptance:
 - text: given the CI typecheck steps, when 'ty check src' runs, then it exits 0 with
     no deprecated-overload diagnostics
-  evidence: []
+  evidence:
+  - tests/test_cli.py::test_resolve_level_accepts_the_standard_names
 - text: given the CI typecheck steps, when 'mypy --config-file mypy-py310.ini' runs,
     then it reports no errors
   evidence: []
