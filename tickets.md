@@ -737,6 +737,7 @@ scope_changes:
   at: '2026-09-07'
 evidence:
 - tests/test_cli.py::test_resolve_level_accepts_the_standard_names
+- tests/test_cli.py::test_below_level_filter_rejects_a_bad_bound
 designated_repro_test: null
 acceptance:
 - text: given the CI typecheck steps, when 'ty check src' runs, then it exits 0 with
@@ -745,7 +746,8 @@ acceptance:
   - tests/test_cli.py::test_resolve_level_accepts_the_standard_names
 - text: given the CI typecheck steps, when 'mypy --config-file mypy-py310.ini' runs,
     then it reports no errors
-  evidence: []
+  evidence:
+  - tests/test_cli.py::test_below_level_filter_rejects_a_bad_bound
 threat: null
 component: null
 anchor: false
