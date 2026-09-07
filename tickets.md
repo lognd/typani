@@ -738,6 +738,8 @@ scope_changes:
 evidence:
 - tests/test_cli.py::test_resolve_level_accepts_the_standard_names
 - tests/test_cli.py::test_below_level_filter_rejects_a_bad_bound
+- tests/test_cli.py::test_configure_ignores_an_unknown_level
+- tests/test_cli.py::test_bad_log_level_is_a_config_error
 designated_repro_test: null
 acceptance:
 - text: given the CI typecheck steps, when 'ty check src' runs, then it exits 0 with
