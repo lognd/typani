@@ -19,6 +19,7 @@ from typani.lint.options import LintOptions
 from typani.logging import configure, get_logger
 from typani.logging.filter import BelowLevelFilter
 from typani.logging.formatter import TypaniFormatter
+from typani.logging.levels import LEVEL_NAMES, resolve_level
 
 _ROOT = Path(__file__).resolve().parents[1]
 
@@ -264,6 +265,26 @@ def test_configure_ignores_an_unknown_level() -> None:
     configure("info")
     configure("bogus")
     assert logging.getLogger("typani").level == logging.INFO
+
+
+# frob:tests src/typani/logging/levels.py::resolve_level
+def test_resolve_level_accepts_the_standard_names() -> None:
+    """Case-insensitive, and None -- never a raise -- for anything else."""
+    assert resolve_level("debug") == logging.DEBUG
+    assert resolve_level("WARNING") == logging.WARNING
+    assert resolve_level("Error") == logging.ERROR
+    assert resolve_level("bogus") is None
+    assert resolve_level("") is None
+    # Every accepted name must round-trip to the stdlib's own number.
+    for name, number in LEVEL_NAMES.items():
+        assert logging.getLevelName(number) == name
+
+
+# frob:tests src/typani/logging/filter.py::BelowLevelFilter
+def test_below_level_filter_rejects_a_bad_bound() -> None:
+    """A bound that is not a level name is a programmer bug, not a config value."""
+    with pytest.raises(ValueError, match="not a logging level name"):
+        BelowLevelFilter("bogus")
 
 
 # frob:tests src/typani/logging/filter.py::BelowLevelFilter

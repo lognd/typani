@@ -59,6 +59,31 @@ logger, and sets `propagate = False` on it -- so even a consuming
 application that *did* call `configure` keeps its own root handlers
 unpolluted.
 
+<a id="resolve_level"></a>
+
+## Level names
+
+```python
+resolve_level(name: str) -> int | None
+LEVEL_NAMES: dict[str, int]
+```
+
+`src/typani/logging/levels.py` is the one place a level name becomes a
+number, shared by `configure`, `BelowLevelFilter` and
+`AppConfig.from_external`. It returns `None` rather than raising, which is
+what lets each caller report a bad level in its own idiom -- a
+`ConfigError.BadLogLevel` value from the config layer, a
+warning-and-ignore from `configure`.
+
+`LEVEL_NAMES` is the stdlib's standard set (`CRITICAL`, `ERROR`,
+`WARNING`, `INFO`, `DEBUG`, `NOTSET`) and nothing more: a name an
+application registered with `logging.addLevelName` is not part of
+typani's CLI contract. It is spelled out rather than looked up because
+`logging.getLevelName`'s `str -> int` direction is a deprecated overload
+that also leaks `Any` into its callers, and
+`logging.getLevelNamesMapping()` is 3.11+ while typani supports 3.10
+(T-0039).
+
 <a id="logging-config"></a>
 
 ## The config

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,6 +11,7 @@ from typing import Any
 from typani.app.errors import ConfigError
 from typani.lint.options import LintOptions, namespace_to_mapping
 from typani.logging import get_logger
+from typani.logging.levels import resolve_level
 from typani.result import Err, Ok, Result
 
 _log = get_logger(__name__)
@@ -96,7 +96,7 @@ class AppConfig:
         _log.debug("from_external: file=%s env=%s cli=%s", file_cfg, env_cfg, cli_cfg)
 
         log_level = str(merged.get("log_level", DEFAULT_LOG_LEVEL)).upper()
-        if not isinstance(logging.getLevelName(log_level), int):
+        if resolve_level(log_level) is None:
             _log.error("from_external: %r is not a logging level name", log_level)
             return Err(ConfigError.BadLogLevel)
 

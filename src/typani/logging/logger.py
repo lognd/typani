@@ -16,6 +16,7 @@ import logging
 import logging.config
 
 from typani.logging.config import LOGGING_CONFIG
+from typani.logging.levels import resolve_level
 
 _ROOT_LOGGER_NAME = "typani"
 
@@ -51,9 +52,9 @@ def configure(level: str | None = None) -> None:
         logger.debug("configure: typani logging channel installed")
     if level is None:
         return
-    resolved = level.upper()
-    if not isinstance(logging.getLevelName(resolved), int):
+    resolved = resolve_level(level)
+    if resolved is None:
         logger.warning("configure: ignoring unknown log level %r", level)
         return
     logger.setLevel(resolved)
-    logger.debug("configure: typani log level set to %s", resolved)
+    logger.debug("configure: typani log level set to %s", level.upper())

@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `docs/logging.md`.
 - `typani.lint.options.LintOptions`: one resolved lint run, and the single
   home for the flag defaults, shared by both entry points.
+- `typani.logging.levels.resolve_level` / `LEVEL_NAMES`: the single home
+  for turning a level name into a number, shared by `configure`,
+  `BelowLevelFilter` and `AppConfig.from_external`. Returns `None` for an
+  unrecognized name rather than raising, so each caller reports a bad
+  level in its own idiom (T-0039).
 
 ### Notes
 

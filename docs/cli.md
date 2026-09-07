@@ -119,6 +119,10 @@ Two behaviors worth knowing:
 
 - A **missing** config file is not an error -- the file layer is
   optional. An **unparseable** one is `ConfigError.BadConfigFile`.
+- The resolved `log_level` is validated against
+  [`resolve_level`](logging.md#resolve_level), the single home for level-name
+  lookup, and a name outside typani's accepted set is
+  `ConfigError.BadLogLevel` -- a value, never a raise.
 - On Python 3.10 there is no `tomllib`, and typani's runtime dependency
   list is empty by contract, so it cannot fall back to `tomli`. The file
   layer is skipped there with an INFO log; CLI flags, environment
