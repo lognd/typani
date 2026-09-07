@@ -690,3 +690,46 @@ anchor_reason: null
 land_commit: null
 ```
 T-0037 added TypaniFormatter.format and BelowLevelFilter.filter. Both are stdlib logging hooks: logging.config.dictConfig instantiates the classes and the handler calls the methods, so no static caller exists by construction, and WIRE002 forbids a bare waiver. They are waived against this ticket. Open question: whether the level-split output can be expressed with stock logging.Formatter fmt strings plus a stdlib filter, removing the custom classes entirely, or whether WIRE001 should learn about dictConfig-wired hooks.
+
+<!-- ticket:T-0039 -->
+```yaml
+id: T-0039
+title: Fix CI typecheck failures from the 0.2.3 CLI release
+state: queued
+kind: bug
+origin: human
+created: '2026-09-07'
+priority: high
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: 0.2.4
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/logging/logger.py
+- src/typani/logging/filter.py
+- src/typani/app/config.py
+- mypy-py310.ini
+- docs/logging.md
+- tests/test_cli.py
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+acceptance:
+- text: given the CI typecheck steps, when 'ty check src' runs, then it exits 0 with
+    no deprecated-overload diagnostics
+  evidence: []
+- text: given the CI typecheck steps, when 'mypy --config-file mypy-py310.ini' runs,
+    then it reports no errors
+  evidence: []
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+T-0037 introduced three calls to logging.getLevelName(str) -> int, an overload the typeshed stubs mark deprecated ('the str -> int case is considered a mistake'); ty exits 1 on all three. The same call also leaks Any into BelowLevelFilter._below, so mypy --strict reports no-any-return on BelowLevelFilter.filter. Separately, the conditional 'import tomllib' in the CLI config layer has a ty override but no mypy counterpart, and the mypy oracle pins python_version = 3.10 where tomllib does not exist. frob check passed locally because it runs ty under its own configuration; neither CI typecheck step was run before the release.
