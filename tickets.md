@@ -637,8 +637,8 @@ identically on a clean stash and is unrelated.
 
 ### Changed
 ```
- tickets.md | 63 ++++++++++++++++++++++----------------------------------------
- 1 file changed, 22 insertions(+), 41 deletions(-)
+ tickets.md | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
 ```
 
 ### Evidence
