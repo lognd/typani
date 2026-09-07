@@ -9,11 +9,12 @@ from typing import Any, Callable, TypeVar, overload
 import typani.option as _option_module
 import typani.result as _result_module
 from typani._exceptions import UnwrapError
+from typani.logging import get_logger
 from typani.result import Err, Ok, Result
 
 F = TypeVar("F", bound=Callable[..., Any])
 
-_log = logging.getLogger("typani.propagate")
+_log = get_logger("typani.propagate")
 
 # Source files of typani's own pure-Python unwrap/expect/danger_*/swap_*
 # implementations, computed once. An `UnwrapError` raised from one of these

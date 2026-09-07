@@ -22,12 +22,12 @@ Selection rules, in order:
 
 from __future__ import annotations
 
-import logging
 import os
 
 from typani._version import __version__ as _TYPANI_VERSION
+from typani.logging import get_logger
 
-_log = logging.getLogger(__name__)
+_log = get_logger(__name__)
 
 _TRUTHY = frozenset({"1", "true", "yes"})
 

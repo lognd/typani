@@ -56,24 +56,34 @@
       "ticket": "T-0030"
     },
     "tests::exec": {
-      "accepted_count": 4,
-      "reason": "T-0030: was 3 (tests/test_backend.py, tests/test_lint.py, tests/test_result_api.py); grew to 4 once the tests node's code= glob widened to include tests/test_scripts.py (SYS103), which execs scripts/*.py entry points under test",
-      "ticket": "T-0030"
+      "accepted_count": 5,
+      "reason": "T-0037: was 4 (test_backend.py, test_lint.py, test_result_api.py, test_scripts.py); grew to 5 with tests/test_cli.py, which execs `python -m typani` and `python -m typani.lint` as subprocesses to prove both module forms still work",
+      "ticket": "T-0037"
     },
     "tests::env.read": {
-      "accepted_count": 2,
-      "reason": "T-0030: was 1 (tests/test_backend.py); grew to 2 once SYS100 named tests/test_result_api.py:196's os.environ monkeypatch used to exercise native/pure backend parity, the same shape test_backend.py already declared",
-      "ticket": "T-0030"
+      "accepted_count": 3,
+      "reason": "T-0037: was 2 (tests/test_backend.py, tests/test_result_api.py); grew to 3 with tests/test_cli.py, which monkeypatches the TYPANI_* environment to prove CLI flags beat env vars beat pyproject.toml",
+      "ticket": "T-0037"
     },
     "tests::fs.read": {
-      "accepted_count": 2,
-      "reason": "T-0015: tests/test_bump_version.py and tests/test_lint.py read temp fixture files the tests themselves write",
-      "ticket": "T-0015"
+      "accepted_count": 3,
+      "reason": "T-0037: was 2 (test_bump_version.py, test_lint.py); grew to 3 with tests/test_cli.py, which reads pyproject.toml back to assert the [project.scripts] entry point uv tool install needs stays declared",
+      "ticket": "T-0037"
     },
     "tests::fs.write": {
-      "accepted_count": 3,
-      "reason": "T-0030: was 2 (tests/test_bump_version.py, tests/test_lint.py); grew to 3 once the tests node's code= glob widened to include tests/test_scripts.py (SYS103), whose script-loader test writes temp fixture files as part of its own setup",
-      "ticket": "T-0030"
+      "accepted_count": 4,
+      "reason": "T-0037: was 3 (test_bump_version.py, test_lint.py, test_scripts.py); grew to 4 with tests/test_cli.py, which writes temp source trees and temp pyproject.toml files for the CLI and config-layering tests",
+      "ticket": "T-0037"
+    },
+    "app::env.read": {
+      "accepted_count": 1,
+      "reason": "T-0037: new pair -- src/typani/app/config.py reads the TYPANI_LOG_LEVEL/TYPANI_LINT_* overrides that sit between CLI flags and pyproject.toml in the CLI's config layering (docs/cli.md#appconfig). CLI-time only; no library import path reaches it",
+      "ticket": "T-0037"
+    },
+    "app::fs-read": {
+      "accepted_count": 1,
+      "reason": "T-0037: new pair -- src/typani/app/config.py reads [tool.typani]/[tool.typani.lint] from pyproject.toml for the CLI's config-file layer. CLI-time only; a missing file is not an error",
+      "ticket": "T-0037"
     }
   }
 }

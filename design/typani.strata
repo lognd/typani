@@ -195,12 +195,64 @@ node version_mod : trusted {
 // submodules). check_paths/_iter_python_files read `*.py` source files
 // from disk via Path.read_text/Path.rglob to lint them, hence the sole
 // other `may` grant in this model.
+//
+// T-0037 revised two clauses of the paragraph above. (a) lint is no
+// longer import-free with respect to typani: every module now logs
+// through `typani.logging` (f_lint_logging below), a stdlib-only leaf
+// that imports nothing back -- the isolation that actually matters, and
+// that c_lint_does_not_reach_api now asserts, is that lint never reaches
+// `api`/Result/Option, so `python -m typani.lint` still costs nothing
+// but the checker. (b) The glob also covers `options.py` (LintOptions,
+// the one home for the flag defaults) and `__main__.py`'s `run`, the
+// single execution path both entry points call.
 // frob:doc docs/lint.md#check_paths
+// frob:doc docs/lint.md#lintoptions
 // frob:ticket T-0013
+// frob:ticket T-0037
 node lint : trusted {
     clearance Public;
     code "src/typani/lint/**";
     may "fs-read" via "src/typani/lint/__init__.py";
+}
+
+// src/typani/logging/**: the central logging channel -- get_logger (names
+// a logger, attaches nothing, so importing typani as a library never
+// touches the consuming app's logging), configure (installs the
+// handlers, called only from the CLI entry point), the level-splitting
+// filter/formatter, and the dictConfig payload. A stdlib-only leaf that
+// imports nothing else in typani, which is what lets every node above
+// depend on it without creating a cycle.
+// frob:doc docs/logging.md#get_logger
+// frob:ticket T-0037
+node logging_mod : trusted {
+    clearance Public;
+    code "src/typani/logging/**";
+}
+
+// src/typani/app/**: the CLI application -- AppConfig (layered
+// CLI > env > pyproject > defaults settings, returning Result over its
+// ConfigError set), App (command -> runner dispatch). Reads pyproject.toml
+// for the file layer and os.environ for the env layer, hence the two
+// `may` grants; both are CLI-time only, never on a library import path.
+// frob:doc docs/cli.md#appconfig
+// frob:ticket T-0037
+node app : trusted {
+    clearance Public;
+    code "src/typani/app/**";
+    may "fs-read" via "src/typani/app/config.py";
+    may "env.read" via "src/typani/app/config.py";
+}
+
+// src/typani/__main__.py: the `typani` console script entry point
+// ([project.scripts] typani = "typani.__main__:main"). Builds the
+// subcommand parser (reusing typani.lint's own flag definitions rather
+// than restating them), installs the logging channel, resolves an
+// AppConfig, and calls App(cfg)().
+// frob:doc docs/cli.md#main
+// frob:ticket T-0037
+node cli : trusted {
+    clearance Public;
+    code "src/typani/__main__.py";
 }
 
 // T-0015: support nodes for trees `frob sys audit`'s vet pass observes
@@ -261,16 +313,16 @@ node scripts : trusted {
 // frob:ticket T-0030
 node tests : trusted {
     clearance Public;
-    code "tests/parity/cases.py" "tests/test_backend.py" "tests/test_bump_version.py" "tests/test_lint.py" "tests/test_option_api.py" "tests/test_result_api.py" "tests/test_scripts.py";
+    code "tests/parity/cases.py" "tests/test_backend.py" "tests/test_bump_version.py" "tests/test_cli.py" "tests/test_lint.py" "tests/test_option_api.py" "tests/test_result_api.py" "tests/test_scripts.py";
     may "deserialize" via "tests/parity/cases.py", "tests/test_option_api.py", "tests/test_result_api.py";
     may "eval" via "tests/parity/cases.py", "tests/test_bump_version.py", "tests/test_scripts.py";
-    may "exec" via "tests/test_backend.py", "tests/test_lint.py", "tests/test_result_api.py", "tests/test_scripts.py";
+    may "exec" via "tests/test_backend.py", "tests/test_cli.py", "tests/test_lint.py", "tests/test_result_api.py", "tests/test_scripts.py";
     // T-0030: test_result_api.py:196 monkeypatches os.environ to exercise
     // native/pure backend parity, the same env.read shape test_backend.py
     // already declares.
-    may "env.read" via "tests/test_backend.py", "tests/test_result_api.py";
-    may "fs.read" via "tests/test_bump_version.py", "tests/test_lint.py";
-    may "fs.write" via "tests/test_bump_version.py", "tests/test_lint.py", "tests/test_scripts.py";
+    may "env.read" via "tests/test_backend.py", "tests/test_cli.py", "tests/test_result_api.py";
+    may "fs.read" via "tests/test_bump_version.py", "tests/test_cli.py", "tests/test_lint.py";
+    may "fs.write" via "tests/test_bump_version.py", "tests/test_cli.py", "tests/test_lint.py", "tests/test_scripts.py";
 }
 
 // -- flows ------------------------------------------------------------
@@ -443,6 +495,80 @@ flow f_bench_option : bench -> option_mod { label Public; attr local; }
 // frob:ticket T-0015
 flow f_bench_result : bench -> result_mod { label Public; attr local; }
 
+// __main__.py: `from typani._version import __version__`,
+// `from typani.app import App, AppConfig` /
+// `from typani.app.config import bootstrap_log_level`,
+// `from typani.lint.__main__ import add_lint_arguments` (the lint flags
+// are defined once, in lint, and reused here), and
+// `from typani.logging import configure, get_logger`.
+// frob:doc docs/cli.md#main
+// frob:ticket T-0037
+flow f_cli_version : cli -> version_mod { label Public; attr local; }
+// frob:doc docs/cli.md#main
+// frob:ticket T-0037
+flow f_cli_app : cli -> app { label Public; attr local; }
+// frob:doc docs/cli.md#main
+// frob:ticket T-0037
+flow f_cli_lint : cli -> lint { label Public; attr local; }
+// frob:doc docs/cli.md#main
+// frob:ticket T-0037
+flow f_cli_logging : cli -> logging_mod { label Public; attr local; }
+
+// app/config.py: `from typani.result import Err, Ok, Result` -- the CLI
+// dogfoods typani's own Result rather than raising for a bad config.
+// frob:doc docs/cli.md#appconfig
+// frob:ticket T-0037
+flow f_app_result : app -> result_mod { label Public; attr local; }
+// app/errors.py: `from typani.error_set import ErrorSet` (ConfigError).
+// frob:doc docs/cli.md#configerror
+// frob:ticket T-0037
+flow f_app_error_set : app -> error_set_mod { label Public; attr local; }
+// app/config.py: `from typani.lint.options import LintOptions,
+// namespace_to_mapping`; app/app.py: lazy `from typani.lint.__main__
+// import run` inside the dispatch branch. One-way by design -- see
+// c_lint_does_not_reach_api.
+// frob:doc docs/cli.md#app
+// frob:ticket T-0037
+flow f_app_lint : app -> lint { label Public; attr local; }
+// app/config.py and app/app.py: `from typani.logging import get_logger`.
+// frob:doc docs/logging.md#get_logger
+// frob:ticket T-0037
+flow f_app_logging : app -> logging_mod { label Public; attr local; }
+
+// Every module that logs does so through the one channel:
+// lint/__init__.py, lint/__main__.py, _impl.py and _propagate.py each
+// carry `from typani.logging import get_logger`.
+// frob:doc docs/logging.md#get_logger
+// frob:ticket T-0037
+flow f_lint_logging : lint -> logging_mod { label Public; attr local; }
+// frob:doc docs/logging.md#get_logger
+// frob:ticket T-0037
+flow f_impl_logging : impl_mod -> logging_mod { label Public; attr local; }
+// frob:doc docs/logging.md#get_logger
+// frob:ticket T-0037
+flow f_propagate_logging : propagate_mod -> logging_mod { label Public; attr local; }
+
+// tests/test_cli.py: `from typani.__main__ import build_parser, main`,
+// `from typani.app import ...`, `from typani.lint.options import ...`,
+// `from typani.logging import ...`, plus `from typani import Err, Ok`.
+// It also execs `python -m typani` and `python -m typani.lint` as
+// subprocesses and writes temp trees to lint, both already covered by
+// the tests node's exec/fs.write grants.
+// frob:doc docs/cli.md#main
+// frob:ticket T-0037
+flow f_tests_cli : tests -> cli { label Public; attr local; }
+// frob:doc docs/cli.md#appconfig
+// frob:ticket T-0037
+flow f_tests_app : tests -> app { label Public; attr local; }
+// frob:doc docs/logging.md#configure
+// frob:ticket T-0037
+flow f_tests_logging : tests -> logging_mod { label Public; attr local; }
+// test_cli.py: `from typani._version import __version__`, asserting that
+// `typani --version` reports the packaged version.
+// frob:doc docs/design.md#support-nodes
+// frob:ticket T-0037
+flow f_tests_version : tests -> version_mod { label Public; attr local; }
+
 // -- claims ------------------------------------------------------------
 
 // Sanity check that api's re-export surface actually reaches every leaf
@@ -476,9 +602,23 @@ assert c_result_isolated_from_singleton noflow result_mod -> singleton_mod
 // frob:ticket T-0005
 assert c_error_set_isolated noflow error_set_mod -> unit
 
-// lint is deliberately never imported from typani/__init__.py or any
-// other node in this model -- it is an opt-in dev tool invoked as
-// `python -m typani.lint`, not part of the runtime import graph.
+// lint is deliberately never imported from typani/__init__.py -- it is
+// an opt-in dev tool, not part of the runtime import graph. T-0037 added
+// the converse direction, which is now load-bearing rather than merely
+// true: `typani.app` imports `typani.lint` (f_app_lint), so the moment
+// lint imported anything of typani proper back, `python -m typani.lint`
+// would start dragging in Result, Option and the backend selector, and
+// the app/lint layering would become a cycle. That is why LintOptions is
+// a plain stdlib dataclass validating nothing, and why every fallible
+// part of the config layering lives in typani.app.config instead.
 // frob:doc docs/lint.md#check_paths
+// frob:doc docs/cli.md#architecture
 // frob:ticket T-0013
+// frob:ticket T-0037
 assert c_lint_isolated_from_api noflow api -> lint
+// frob:doc docs/cli.md#architecture
+// frob:ticket T-0037
+assert c_lint_does_not_reach_api noflow lint -> api
+// frob:doc docs/cli.md#architecture
+// frob:ticket T-0037
+assert c_lint_does_not_reach_result noflow lint -> result_mod

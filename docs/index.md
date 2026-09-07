@@ -22,6 +22,8 @@ themes it traces to, and what changed since 0.0.x).
 | `typani.unit` | Zero-slot marker base class | [unit.md](unit.md) |
 | `typani.unreachable` | Runtime-checked unreachable sentinel | [unreachable.md](unreachable.md) |
 | `typani.singleton` | Singleton decorator and base classes | [singleton.md](singleton.md) |
-| `typani.lint` | stdlib-only misuse checker, `python -m typani.lint` | [lint.md](lint.md) |
+| `typani.lint` | stdlib-only misuse checker, `typani lint` or `python -m typani.lint` | [lint.md](lint.md) |
+| `typani.app` / `typani.__main__` | the `typani` console script: App, AppConfig, layered settings | [cli.md](cli.md) |
+| `typani.logging` | the central logging channel every module logs through | [logging.md](logging.md) |
 | `typani_core` (native) | PyO3/maturin accelerator for Result/Option, pure-Python fallback | [native.md](native.md) |
 | -- | `design/typani.strata`, the provable system-design model of typani's own module graph | [design.md](design.md) |

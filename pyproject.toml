@@ -30,6 +30,13 @@ authors = [
 
 dependencies = []
 
+# T-0037: `uv tool install typani` / `uvx typani` require an executable to
+# install -- a library with no console script is rejected as "not a tool
+# package". typani.lint is a real CLI, so ship it under a `typani` command;
+# `python -m typani.lint` remains the equivalent module-form invocation.
+[project.scripts]
+typani = "typani.__main__:main"
+
 [project.optional-dependencies]
 pydantic = ["pydantic>=2.0"]
 # T-0010: the native acceleration extra -- typani-core (crates/typani-core),
@@ -91,6 +98,18 @@ select = ["E", "F", "W", "I", "B"]
 # resolvable module there. Same posture as frob's own native shim override.
 [[tool.ty.overrides]]
 include = ["src/typani/_impl.py"]
+
+[tool.ty.overrides.rules]
+unresolved-import = "ignore"
+
+# T-0037: the CLI's config-file layer imports `tomllib` inside a
+# try/ModuleNotFoundError -- absent on 3.10 by design, where the file layer is
+# skipped rather than failing (docs/cli.md#appconfig). tests/test_cli.py's
+# packaging assertion falls back to `tomli` (a dev-group dependency, not a
+# runtime one) on the same interpreters. Both are deliberately conditional, not
+# unresolvable imports.
+[[tool.ty.overrides]]
+include = ["src/typani/app/config.py", "tests/test_cli.py"]
 
 [tool.ty.overrides.rules]
 unresolved-import = "ignore"

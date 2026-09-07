@@ -158,7 +158,8 @@ system-design model of typani's own module graph.
 | `Unreachable` | runtime-checked exhaustiveness sentinel | [docs/unreachable.md](https://github.com/lognd/typani/blob/main/docs/unreachable.md) |
 | `Singleton` family | singleton decorator, base classes, `SingletonModel` | [docs/singleton.md](https://github.com/lognd/typani/blob/main/docs/singleton.md) |
 | `unwrap()` / `@propagate` / `@catching` | Rust-`?`-style propagation, exception-to-`Result` boundary | [docs/result.md#propagation](https://github.com/lognd/typani/blob/main/docs/result.md#propagation) |
-| `python -m typani.lint` | stdlib-only misuse checker (TYP001-TYP005) | [docs/lint.md](https://github.com/lognd/typani/blob/main/docs/lint.md) |
+| `typani lint` / `python -m typani.lint` | stdlib-only misuse checker (TYP001-TYP005) | [docs/lint.md](https://github.com/lognd/typani/blob/main/docs/lint.md) |
+| `typani` console script | `uvx`/`uv tool`-installable CLI, layered config | [docs/cli.md](https://github.com/lognd/typani/blob/main/docs/cli.md) |
 | `typani-core` (`native` extra) | optional Rust accelerator, pure-Python fallback | [docs/native.md](https://github.com/lognd/typani/blob/main/docs/native.md) |
 
 ## Type checking
@@ -195,8 +196,16 @@ and can be forced with `TYPANI_PURE=1`. Full numbers and methodology:
 ## Lint
 
 ```bash
-python -m typani.lint src
+uvx typani lint src        # no install needed
+python -m typani.lint src  # equivalent, from an environment with typani
 ```
+
+typani ships a `typani` console script whose only subcommand is `lint`, so
+the checker is runnable with `uvx`/`uv tool install`/`pipx run` without
+installing typani into the project being linted. It reads
+`[tool.typani.lint]` from `pyproject.toml` and the `TYPANI_LINT_*`
+environment variables underneath its flags -- see
+[docs/cli.md](https://github.com/lognd/typani/blob/main/docs/cli.md).
 
 `--json` emits a versioned envelope (`{"version": 1, "files_scanned": N,
 "findings": [...]}`) instead of a bare array, so a scan of zero matched

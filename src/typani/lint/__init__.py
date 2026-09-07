@@ -8,14 +8,14 @@ zero runtime footprint on the main package.
 from __future__ import annotations
 
 import ast
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
 from typani.lint._rules import RULES, MisuseVisitor, apply_suppressions, is_skip_file
+from typani.logging import get_logger
 
-_log = logging.getLogger(__name__)
+_log = get_logger(__name__)
 
 _DEFAULT_EXCLUDE_DIRS = frozenset(
     {".venv", ".git", "__pycache__", "node_modules", "build", "dist"}

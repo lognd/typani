@@ -22,6 +22,20 @@ them again every time.
 
 ## Usage
 
+Two entry points, one checker:
+
+```console
+$ uvx typani lint src                        # console script, no install
+$ uv tool install typani && typani lint src  # console script, on PATH
+$ python -m typani.lint src                  # module form
+```
+
+`typani lint` layers `[tool.typani.lint]` in `pyproject.toml` and the
+`TYPANI_LINT_*` environment variables underneath the flags below; `python
+-m typani.lint` is the flags-only form and reads neither. Both resolve
+into the same `LintOptions` and call the same `run`. See
+[cli.md](cli.md) for the layering rules and `--log-level`.
+
 ```console
 $ python -m typani.lint                      # lint "." by default
 $ python -m typani.lint src tests             # lint specific paths
@@ -411,22 +425,82 @@ render_json(report: Report) -> str
 Renders a `Report` as the versioned JSON envelope (see "JSON schema"
 below), preserving the given finding order.
 
+<a id="lintoptions"></a>
+
+### `LintOptions`
+
+```python
+@dataclass(frozen=True, slots=True)
+class LintOptions:
+    paths: tuple[str, ...] = (".",)
+    json: bool = False
+    exclude: tuple[str, ...] = ()
+    select: tuple[str, ...] = ()
+    ignore: tuple[str, ...] = ()
+    no_info: bool = False
+
+    @classmethod
+    def from_mapping(cls, values: Mapping[str, object]) -> LintOptions: ...
+```
+
+One resolved lint run (`typani/lint/options.py`), and the single home for
+the flag defaults. `from_mapping` ignores unknown keys and treats `None`
+or an empty sequence as "this layer did not set it", which is what lets
+`AppConfig` merge CLI flags over environment variables over
+`pyproject.toml` and pass the result straight through.
+
+Stdlib-only and validation-free on purpose: `typani.lint` must not import
+typani proper (see [cli.md](cli.md#architecture)), so it has no `Result`
+to report a bad value with. Everything fallible lives in
+`typani.app.config`.
+
+`namespace_to_mapping(args)` in the same module turns a parsed
+`argparse.Namespace` into the mapping `from_mapping` consumes, keeping
+only the flags actually passed.
+
+### `add_lint_arguments`
+
+```python
+add_lint_arguments(parser: argparse.ArgumentParser) -> argparse.ArgumentParser
+```
+
+Defines the lint flags on any parser and returns it. Both entry points
+call it -- the standalone `build_parser` below and the `lint` subparser in
+`typani.__main__` -- so the flags exist in exactly one place. Every
+argparse default is `None`, argparse's "not given" marker, so that
+`AppConfig` can layer other sources underneath them; the real defaults
+live on `LintOptions`.
+
 ### `build_parser`
 
 ```python
-build_parser() -> argparse.ArgumentParser
+build_parser(prog: str = "python -m typani.lint") -> argparse.ArgumentParser
 ```
 
-Builds the `argparse` parser backing the CLI described in "Usage" above.
+Builds the standalone parser backing the module-form CLI. `prog` exists
+so a caller can report its own invocation name in usage text.
+
+<a id="run"></a>
+
+### `run`
+
+```python
+run(options: LintOptions) -> int
+```
+
+The single execution path: scan, filter, print the report, return the
+process exit code (see "Exit codes" above). `python -m typani.lint` and
+`typani lint` differ only in how they arrive at the `LintOptions` they
+hand it.
 
 ### `main`
 
 ```python
-main(argv: list[str] | None = None) -> int
+main(argv: list[str] | None = None, *, prog: str | None = None) -> int
 ```
 
-Runs the CLI end to end -- scan, filter, print the report -- and returns
-the process exit code (see "Exit codes" above).
+Runs the module-form CLI end to end: parse argv into `LintOptions`, then
+`run`. Applies no config-file or environment layer.
 
 ## JSON schema
 

@@ -52,18 +52,29 @@ capabilities bind to a `code=` glob instead of tripping SYS103
   `install.py`/`release.py`/`typecheck_oracle.py`, and `may
   "env-read"`/`may "env-write"` for `check.py`'s gate-selection env
   reads and `release.py`'s publish-flow environment handling.
-- `tests` (`tests/**`, T-0030 added `tests/test_scripts.py` to the
-  bound file list once the vet pass observed its own capabilities):
-  the pytest suite, declaring the union of capabilities the vet pass
-  observes across the tree (`deserialize`, `eval`, `exec`, `env-read`,
-  `fs-read`, `fs-write`) -- fixtures, monkeypatched environment reads
-  (including `test_result_api.py`'s native/pure backend parity check),
-  subprocess-exec checks on `python -m typani.lint` and on
-  `scripts/*.py` entry points, and temp-file I/O all live under
-  `tests/`.
+- `tests` (`tests/**`, T-0030 added `tests/test_scripts.py` and T-0037
+  added `tests/test_cli.py` to the bound file list once the vet pass
+  observed their own capabilities): the pytest suite, declaring the
+  union of capabilities the vet pass observes across the tree
+  (`deserialize`, `eval`, `exec`, `env-read`, `fs-read`, `fs-write`) --
+  fixtures, monkeypatched environment reads (`test_result_api.py`'s
+  native/pure backend parity check, and `test_cli.py`'s `TYPANI_*`
+  overrides proving CLI flags beat env vars beat `pyproject.toml`),
+  subprocess-exec checks on `python -m typani`, `python -m typani.lint`
+  and `scripts/*.py` entry points, and temp-file I/O (including the
+  temp source trees and `pyproject.toml` files `test_cli.py` writes)
+  all live under `tests/`.
 
-None of these four participate in the runtime `src/typani/**` import
-graph modeled above; `tests` flows to `api` (the suite imports typani's
+T-0037 added three more nodes, these ones inside the runtime tree:
+`logging_mod` (`src/typani/logging/**`, the central logging channel --
+a stdlib-only leaf every other node may depend on), `app`
+(`src/typani/app/**`, the CLI application, whose `may "fs-read"`/`may
+"env-read"` cover `AppConfig`'s pyproject.toml and environment layers),
+and `cli` (`src/typani/__main__.py`, the console-script entry point).
+See [cli.md](cli.md) and [logging.md](logging.md).
+
+None of the four support nodes participate in the runtime
+`src/typani/**` import graph modeled above; `tests` flows to `api` (the suite imports typani's
 public surface) and `bench` flows to `api` (the benchmark imports the
 same). `native_core` and `scripts` have no flow into typani's model --
 neither is imported by anything else in this repo.
