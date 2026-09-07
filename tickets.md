@@ -439,7 +439,7 @@ propagate's factory form and hook had no reference entry; added one in the style
 ```yaml
 id: T-0037
 title: Ship a typani console script so uvx/uv tool can run the linter
-state: queued
+state: in-progress
 kind: feature
 origin: human
 created: '2026-09-07'
