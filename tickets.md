@@ -695,7 +695,7 @@ T-0037 added TypaniFormatter.format and BelowLevelFilter.filter. Both are stdlib
 ```yaml
 id: T-0039
 title: Fix CI typecheck failures from the 0.2.3 CLI release
-state: in-progress
+state: done
 kind: bug
 origin: human
 created: '2026-09-07'
