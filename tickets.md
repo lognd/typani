@@ -468,6 +468,7 @@ scope:
 - docs/cli.md
 - docs/logging.md
 - docs/index.md
+- uv.lock
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
@@ -543,6 +544,12 @@ scope_changes:
   glob: src/typani/_cli.py
   reason: 'superseded: the console script moved to typani/__main__.py with the App/AppConfig
     pattern'
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: uv.lock
+  reason: uv.lock still recorded typani 0.2.1 after the 0.2.2 bump; regenerated as
+    a side effect of verifying uv tool install / uvx against this checkout
   actor: logan
   at: '2026-09-07'
 designated_repro_test: null
