@@ -434,3 +434,46 @@ propagate's factory form and hook had no reference entry; added one in the style
 - tests: 0 passed (from 0 evidence id(s))
 - gates: 0 error(s), 1009 warning(s), 2 waived
 - error-findings: none (measured, zero errors)
+
+<!-- ticket:T-0037 -->
+```yaml
+id: T-0037
+title: Ship a typani console script so uvx/uv tool can run the linter
+state: queued
+kind: feature
+origin: human
+created: '2026-09-07'
+priority: medium
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- pyproject.toml
+- src/typani/_cli.py
+- src/typani/lint/__main__.py
+- docs/lint.md
+- README.md
+- tests/test_cli.py
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+acceptance:
+- text: given typani installed as a uv tool, when the user runs 'typani lint src',
+    then the linter runs and exits with its usual status code
+  evidence: []
+- text: given no subcommand, when 'typani' is run, then it prints usage and exits
+    nonzero
+  evidence: []
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+uv tool install typani fails because typani declares no [project.scripts] entry point. typani.lint is a real CLI, so expose it as a 'typani' console script with a 'lint' subcommand; python -m typani.lint keeps working unchanged.
