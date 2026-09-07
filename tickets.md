@@ -469,6 +469,8 @@ scope:
 - docs/logging.md
 - docs/index.md
 - uv.lock
+- docs/design.md
+- docs/design/registry/capability-via-ratchet.lock.json
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
@@ -550,6 +552,20 @@ scope_changes:
   glob: uv.lock
   reason: uv.lock still recorded typani 0.2.1 after the 0.2.2 bump; regenerated as
     a side effect of verifying uv tool install / uvx against this checkout
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: docs/design.md
+  reason: strata model gained three nodes (cli/app/logging_mod) and the tests node
+    gained test_cli.py; design.md support-node prose and the capability ratchet lock
+    must move with them
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: docs/design/registry/capability-via-ratchet.lock.json
+  reason: strata model gained three nodes (cli/app/logging_mod) and the tests node
+    gained test_cli.py; design.md support-node prose and the capability ratchet lock
+    must move with them
   actor: logan
   at: '2026-09-07'
 designated_repro_test: null
