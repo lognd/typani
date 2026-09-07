@@ -714,10 +714,27 @@ scope:
 - mypy-py310.ini
 - docs/logging.md
 - tests/test_cli.py
+- src/typani/logging/levels.py
+- docs/cli.md
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: add
+  glob: src/typani/logging/levels.py
+  reason: the fix needed one shared home for level-name resolution (levels.py) rather
+    than three deprecated getLevelName calls; docs/cli.md's AppConfig anchor moves
+    with from_external's validation change
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: docs/cli.md
+  reason: the fix needed one shared home for level-name resolution (levels.py) rather
+    than three deprecated getLevelName calls; docs/cli.md's AppConfig anchor moves
+    with from_external's validation change
+  actor: logan
+  at: '2026-09-07'
 designated_repro_test: null
 acceptance:
 - text: given the CI typecheck steps, when 'ty check src' runs, then it exits 0 with
