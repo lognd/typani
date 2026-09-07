@@ -583,3 +583,39 @@ anchor_reason: null
 land_commit: null
 ```
 uv tool install typani fails because typani declares no [project.scripts] entry point. typani.lint is a real CLI, so expose it as a 'typani' console script with a 'lint' subcommand; python -m typani.lint keeps working unchanged.
+
+<!-- ticket:T-0038 -->
+```yaml
+id: T-0038
+title: Revisit typani.logging's custom formatter/filter WIRE001 waivers
+state: queued
+kind: bug
+origin: agent
+created: '2026-09-07'
+priority: low
+parent: null
+tier: ticket
+sprint: null
+runs_last: false
+milestone: null
+runs_last_parallel_safe: false
+runs_last_parallel_safe_reason: null
+scope:
+- src/typani/logging/
+scope_breadth_ack: false
+scope_breadth_ack_reason: null
+no_scope_declared: false
+no_scope_declared_reason: null
+designated_repro_test: null
+acceptance:
+- text: given typani.logging's formatter and filter, when frob check runs, then either
+    the WIRE001 waivers are gone because a static caller exists or the custom classes
+    were replaced by stdlib configuration
+  evidence: []
+threat: null
+component: null
+anchor: false
+anchor_reason: null
+land_commit: null
+```
+T-0037 added TypaniFormatter.format and BelowLevelFilter.filter. Both are stdlib logging hooks: logging.config.dictConfig instantiates the classes and the handler calls the methods, so no static caller exists by construction, and WIRE002 forbids a bare waiver. They are waived against this ticket. Open question: whether the level-split output can be expressed with stock logging.Formatter fmt strings plus a stdlib filter, removing the custom classes entirely, or whether WIRE001 should learn about dictConfig-wired hooks.
