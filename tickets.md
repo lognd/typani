@@ -458,10 +458,25 @@ scope:
 - docs/lint.md
 - README.md
 - tests/test_cli.py
+- src/typani/lint/__init__.py
+- design/typani.strata
 scope_breadth_ack: false
 scope_breadth_ack_reason: null
 no_scope_declared: false
 no_scope_declared_reason: null
+scope_changes:
+- op: add
+  glob: src/typani/lint/__init__.py
+  reason: doc anchors in docs/lint.md bind to symbols in these files; scope closure
+    requires them
+  actor: logan
+  at: '2026-09-07'
+- op: add
+  glob: design/typani.strata
+  reason: doc anchors in docs/lint.md bind to symbols in these files; scope closure
+    requires them
+  actor: logan
+  at: '2026-09-07'
 designated_repro_test: null
 acceptance:
 - text: given typani installed as a uv tool, when the user runs 'typani lint src',
