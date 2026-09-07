@@ -597,7 +597,7 @@ parent: null
 tier: ticket
 sprint: null
 runs_last: false
-milestone: null
+milestone: 0.2.3
 runs_last_parallel_safe: false
 runs_last_parallel_safe_reason: null
 scope:
