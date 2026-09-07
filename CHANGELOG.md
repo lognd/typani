@@ -5,6 +5,40 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-09-07
+
+### Added
+
+- A `typani` console script (`[project.scripts]`), so the misuse checker
+  is installable and runnable as a tool: `uvx typani lint src`,
+  `uv tool install typani`, `pipx run typani lint src` (T-0037).
+  `uv tool install typani` previously failed outright -- uv rejects a
+  distribution that declares no executable as "not a tool package".
+  `python -m typani.lint` is unchanged.
+- `typani lint` layers its settings, highest precedence first: CLI flags,
+  then the `TYPANI_LOG_LEVEL`/`TYPANI_LINT_*` environment variables, then
+  `[tool.typani]` and `[tool.typani.lint]` in `pyproject.toml`, then
+  defaults. `python -m typani.lint` remains the flags-only form and reads
+  neither of the middle two layers. See `docs/cli.md`.
+- `--log-level`, accepted on either side of the subcommand, controlling
+  typani's own diagnostics (default `warning`).
+- `typani.logging`: the central logging channel every module now logs
+  through. `get_logger` names a logger and attaches nothing, so importing
+  typani as a library never touches the consuming application's logging
+  setup; `configure` installs handlers on the `typani` logger only (never
+  the root logger) and is called solely from the CLI entry point. See
+  `docs/logging.md`.
+- `typani.lint.options.LintOptions`: one resolved lint run, and the single
+  home for the flag defaults, shared by both entry points.
+
+### Notes
+
+- On Python 3.10 there is no `tomllib`, and typani's runtime dependency
+  list is empty by contract, so the `pyproject.toml` config layer is
+  skipped there with an INFO log. CLI flags, environment variables and
+  defaults all still apply. This is the only behavior difference between
+  3.10 and 3.11+.
+
 ## [0.2.1] - 2026-09-05
 
 ### Changed
