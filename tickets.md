@@ -595,12 +595,48 @@ uv tool install typani fails because typani declares no [project.scripts] entry 
 
 ## Done report
 
-(no narrative supplied)
+uv tool install typani failed because typani declared no [project.scripts]
+entry point -- uv classifies a distribution with no executable as not a tool
+package. typani.lint is a real CLI, so it is now shipped as one:
+[project.scripts] typani = "typani.__main__:main", with lint as its subcommand.
+
+Per direction taken mid-ticket, the entry point follows this ecosystem's
+App/AppConfig pattern rather than a bare dispatcher, and every module now logs
+through a central typani.logging channel instead of module-local
+logging.getLogger calls.
+
+Two deliberate deviations from the pattern, both documented at the point they
+occur (docs/cli.md#appconfig, docs/logging.md). AppConfig is a frozen dataclass
+rather than a pydantic BaseModel, because typani's runtime dependency list is
+empty by contract and `uvx typani lint` must not pull pydantic into a tree that
+only wanted the checker -- it uses typani's own Result/ErrorSet instead. And
+get_logger is split from configure, because typani is a library first: a
+library that calls dictConfig at import time hijacks its consumer's logging.
+
+Duplication was avoided by keeping the lint flags defined once
+(add_lint_arguments) and having both entry points resolve into one LintOptions
+and call one run(). The app -> lint direction is one-way, which typani.strata
+now asserts as c_lint_does_not_reach_api / c_lint_does_not_reach_result rather
+than only the previous noflow api -> lint.
+
+Three real bugs surfaced and were fixed during the work: argparse subparser
+defaults silently erasing `typani --log-level X lint ...` (fixed with
+SUPPRESS), slots=True making cls.field a slot descriptor rather than the
+default value, and an omitted nargs="*" positional arriving as [] and
+clobbering the config-file layer.
+
+Evidence: frob check --ticket T-0037 reports 0 errors. tests/test_cli.py adds
+27 tests covering the parser, the full config layering, App dispatch, the
+logging channel, and both module forms; they pass on 3.10 (3 skips where
+tomllib does not exist) and all pass on 3.12. Verified end to end against uv
+tool install, uvx, python -m typani and python -m typani.lint. The one failing
+test in the suite, test_release_refuses_publish_without_token, fails
+identically on a clean stash and is unrelated.
 
 ### Changed
 ```
- tickets.md | 61 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 61 insertions(+)
+ tickets.md | 63 ++++++++++++++++++++++----------------------------------------
+ 1 file changed, 22 insertions(+), 41 deletions(-)
 ```
 
 ### Evidence
