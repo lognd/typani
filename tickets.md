@@ -453,7 +453,6 @@ runs_last_parallel_safe: false
 runs_last_parallel_safe_reason: null
 scope:
 - pyproject.toml
-- src/typani/_cli.py
 - src/typani/lint/__main__.py
 - docs/lint.md
 - README.md
@@ -538,6 +537,12 @@ scope_changes:
   glob: docs/index.md
   reason: 'central logging channel + App/AppConfig pattern per user direction: new
     app/logging packages, __main__ entry, and the module-wide switch to typani.logging.get_logger'
+  actor: logan
+  at: '2026-09-07'
+- op: remove
+  glob: src/typani/_cli.py
+  reason: 'superseded: the console script moved to typani/__main__.py with the App/AppConfig
+    pattern'
   actor: logan
   at: '2026-09-07'
 designated_repro_test: null
