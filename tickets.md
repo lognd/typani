@@ -757,3 +757,52 @@ anchor_reason: null
 land_commit: null
 ```
 T-0037 introduced three calls to logging.getLevelName(str) -> int, an overload the typeshed stubs mark deprecated ('the str -> int case is considered a mistake'); ty exits 1 on all three. The same call also leaks Any into BelowLevelFilter._below, so mypy --strict reports no-any-return on BelowLevelFilter.filter. Separately, the conditional 'import tomllib' in the CLI config layer has a ty override but no mypy counterpart, and the mypy oracle pins python_version = 3.10 where tomllib does not exist. frob check passed locally because it runs ty under its own configuration; neither CI typecheck step was run before the release.
+
+## Done report
+
+Both CI typecheck steps failed on the 0.2.3 release commit, and both failures
+came from T-0037.
+
+ty check src exited 1 on three calls to logging.getLevelName(str) -> int:
+typeshed marks that direction deprecated ("the str -> int case is considered a
+mistake"). The same call leaked Any into BelowLevelFilter._below, which
+mypy --strict then reported as no-any-return on BelowLevelFilter.filter.
+Separately the mypy oracle pins python_version = 3.10, where the config
+layer's conditional `import tomllib` is deliberately unresolvable; it had a
+[[tool.ty.overrides]] entry but no mypy counterpart.
+
+The fix is one shared home -- src/typani/logging/levels.py -- rather than
+three open-coded lookups, since the same resolution is needed by configure,
+BelowLevelFilter and AppConfig.from_external. LEVEL_NAMES is spelled out
+rather than looked up because logging.getLevelNamesMapping() is 3.11+ and
+typani supports 3.10, and because it makes the accepted set an explicit
+contract: the stdlib's standard names, not whatever an application registered
+with addLevelName. resolve_level returns None instead of raising, which is
+what lets the config layer report ConfigError.BadLogLevel as a value while
+configure warns and carries on. BelowLevelFilter now rejects a non-level
+bound outright, because that bound comes from typani's own LOGGING_CONFIG and
+never from user input -- a bad one is a programmer bug, not a config value.
+
+Root cause of the escape, worth recording: frob check runs ty under its own
+configuration and does not run the mypy oracle at all, so a clean
+frob check --ticket was not evidence that CI would pass. Neither of the two
+CI typecheck commands was run against the release commit before tagging.
+
+Evidence: uv run ty check src exits 0 with no diagnostics; uv run mypy
+--config-file mypy-py310.ini reports no issues in 29 source files; the full
+CI job (ruff check, ruff format --check, both typecheckers, TYPANI_PURE=1
+pytest -n auto) passes locally; frob check --ticket T-0039 reports 0 errors.
+
+### Changed
+(no changed files detected)
+
+### Evidence
+- `tests/test_cli.py::test_resolve_level_accepts_the_standard_names` (pytest node id, verified passing when recorded)
+- `tests/test_cli.py::test_below_level_filter_rejects_a_bad_bound` (pytest node id, verified passing when recorded)
+- `tests/test_cli.py::test_configure_ignores_an_unknown_level` (pytest node id, verified passing when recorded)
+- `tests/test_cli.py::test_bad_log_level_is_a_config_error` (pytest node id, verified passing when recorded)
+
+### Captured claims
+- tests: 4 passed (from 4 evidence id(s))
+- gates: 0 error(s), 1007 warning(s), 3 waived
+- error-findings: none (measured, zero errors)
